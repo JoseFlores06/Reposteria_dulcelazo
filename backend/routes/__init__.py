@@ -1,0 +1,12 @@
+from .auth import router as auth_router
+from .empresa import router as empresa_router
+from .insumos import router as insumos_router
+from .productos import router as productos_router
+from .paquetes import router as paquetes_router
+from .promociones import router as promociones_router
+from .clientes import router as clientes_router
+from .colaboradores import router as colaboradores_router
+from .ventas import router as ventas_router
+from .finanzas import router as finanzas_router
+from .calendario import router as calendario_router
+from .marketing import router as marketing_router

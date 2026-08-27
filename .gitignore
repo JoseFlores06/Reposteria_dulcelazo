@@ -1,0 +1,26 @@
+# Dependencias (se regeneran con: npm install / pip install -r requirements.txt)
+node_modules/
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+
+# Build / archivos generados
+frontend/dist/
+frontend/.vite/
+
+# Entorno y secretos
+backend/.env
+
+# Datos y archivos subidos por usuarios
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/*_backup.json
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
