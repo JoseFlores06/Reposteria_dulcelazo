@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models.usuario import Usuario
-from models.configuracion_google import ConfiguracionGoogle
+from models.calendario import Calendario
 from auth import requerir_admin
 from services.google_calendar import (
     get_auth_url, exchange_code_for_tokens, esta_conectado,
@@ -24,8 +24,8 @@ def estado_calendario(
     db: Session = Depends(get_db),
     _: Usuario = Depends(requerir_admin),
 ):
-    from models.configuracion_google import ConfiguracionGoogle
-    cfg = db.query(ConfiguracionGoogle).first()
+    from models.calendario import Calendario
+    cfg = db.query(Calendario).first()
     conectado = cfg is not None and bool(cfg.refresh_token)
     return {
         "conectado": conectado,
@@ -52,9 +52,9 @@ def callback_google(code: str, db: Session = Depends(get_db)):
     try:
         tokens = exchange_code_for_tokens(code)
 
-        cfg = db.query(ConfiguracionGoogle).first()
+        cfg = db.query(Calendario).first()
         if not cfg:
-            cfg = ConfiguracionGoogle()
+            cfg = Calendario()
             db.add(cfg)
 
         cfg.refresh_token = tokens.get("refresh_token") or (cfg.refresh_token if cfg else None)
@@ -73,7 +73,7 @@ def callback_google(code: str, db: Session = Depends(get_db)):
 @router.delete("/desconectar")
 def desconectar_google(db: Session = Depends(get_db), _: Usuario = Depends(requerir_admin)):
     """Elimina los tokens de Google."""
-    cfg = db.query(ConfiguracionGoogle).first()
+    cfg = db.query(Calendario).first()
     if cfg:
         cfg.refresh_token = None
         cfg.access_token = None
@@ -88,7 +88,7 @@ def listar_eventos(db: Session = Depends(get_db), _: Usuario = Depends(requerir_
     from datetime import datetime
     from zoneinfo import ZoneInfo
 
-    cfg = db.query(ConfiguracionGoogle).first()
+    cfg = db.query(Calendario).first()
     if not cfg or not cfg.refresh_token:
         return {"eventos": [], "conectado": False}
 

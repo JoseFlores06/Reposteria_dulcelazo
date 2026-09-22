@@ -9,8 +9,8 @@ from database import engine
 from models.base import Base
 from models import (
     Usuario, Empresa, Insumo, Producto, ProductoInsumo,
-    Paquete, PaqueteProducto, Promocion, Cliente, Colaborador,
-    Venta, VentaItem, PagoColaborador, ConfiguracionGoogle, GastoMarketing, DireccionCliente,
+    Paquete, PaqueteProducto, Promocion, PromocionPaquete, Cliente, Colaborador,
+    Venta, VentaItem, PagoColaborador, Calendario, DireccionCliente,
     MermaInsumo
 )
 
@@ -18,7 +18,6 @@ from routes import (
     auth_router, empresa_router, insumos_router, productos_router,
     paquetes_router, promociones_router, clientes_router,
     colaboradores_router, ventas_router, finanzas_router, calendario_router,
-    marketing_router
 )
 
 # Crear tablas
@@ -58,7 +57,6 @@ app.include_router(colaboradores_router, prefix="/api/colaboradores", tags=["Col
 app.include_router(ventas_router, prefix="/api/ventas", tags=["Ventas"])
 app.include_router(finanzas_router, prefix="/api/finanzas", tags=["Finanzas"])
 app.include_router(calendario_router, prefix="/api/calendario", tags=["Calendario"])
-app.include_router(marketing_router, prefix="/api/marketing", tags=["Marketing"])
 
 
 @app.get("/")

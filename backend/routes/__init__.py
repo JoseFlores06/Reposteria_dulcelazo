@@ -9,4 +9,3 @@ from .colaboradores import router as colaboradores_router
 from .ventas import router as ventas_router
 from .finanzas import router as finanzas_router
 from .calendario import router as calendario_router
-from .marketing import router as marketing_router

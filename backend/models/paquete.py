@@ -16,6 +16,7 @@ class Paquete(Base):
     activo = Column(Boolean, default=True)
 
     productos = relationship("PaqueteProducto", back_populates="paquete", cascade="all, delete-orphan")
+    promociones = relationship("PromocionPaquete", back_populates="paquete", cascade="all, delete-orphan")
 
 
 class PaqueteProducto(Base):

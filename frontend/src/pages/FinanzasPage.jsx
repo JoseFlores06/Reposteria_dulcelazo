@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  getReporteInsumos, getReporteVentas, getReporteGanancia,
+  getReporteInsumos,
   getPagosColaboradores, registrarPago, actualizarPago, eliminarPago,
   getResumenGroq,
+  getDashboard, getVentasDetalle,
 } from '../api/finanzas'
-import { getVentasDetalle, getDashboard, getMarketingFinanzas } from '../api/marketing'
 import { getColaboradores } from '../api/colaboradores'
 import {
   TrendingUp, Archive, ShoppingBag, DollarSign, Users, Plus, X, Edit, Check,
-  Sparkles, Brain, ChevronDown, ChevronRight, BarChart2, Megaphone, Eye
+  Sparkles, Brain, ChevronDown, ChevronRight, BarChart2, Eye
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -23,10 +23,7 @@ const CHART_COLORS = ['#ec4899','#f9a8d4','#be185d','#fbcfe8','#9d174d','#f472b6
 const TABS = [
   { id: 'dashboard',       label: 'Dashboard',            icon: BarChart2  },
   { id: 'insumos',         label: 'Insumos',              icon: Archive    },
-  { id: 'ventas',          label: 'Ventas',               icon: ShoppingBag },
-  { id: 'ventas_detalle',  label: 'Ventas + Ganancia',    icon: TrendingUp  },
-  { id: 'ganancia',        label: 'Ganancia',             icon: DollarSign  },
-  { id: 'marketing',       label: 'Marketing',            icon: Megaphone   },
+  { id: 'ventas_detalle',  label: 'Ventas',               icon: ShoppingBag },
   { id: 'pagos',           label: 'Pagos colaboradores',  icon: Users       },
 ]
 
@@ -76,12 +73,9 @@ export default function FinanzasPage() {
 
     const fnMap = {
       insumos:        getReporteInsumos,
-      ventas:         getReporteVentas,
-      ganancia:       getReporteGanancia,
       pagos:          getPagosColaboradores,
       ventas_detalle: getVentasDetalle,
       dashboard:      getDashboard,
-      marketing:      getMarketingFinanzas,
     }
     const fn = fnMap[tab]
     if (!fn) return
@@ -190,7 +184,7 @@ export default function FinanzasPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-xs font-semibold uppercase tracking-wider ct-muted">Período:</span>
         <FiltroFecha mes={mes} anio={anio} setMes={setMes} setAnio={setAnio}/>
-        {(tab === 'ventas' || tab === 'ganancia' || tab === 'ventas_detalle') && (
+        {tab === 'ventas_detalle' && (
           <button onClick={handleAnalisisIA} disabled={cargandoIA}
             className="btn-secondary text-xs flex items-center gap-1.5 ml-2">
             <Brain size={13} className="text-primary-500"/>
@@ -257,63 +251,6 @@ export default function FinanzasPage() {
                 </table>
                 {!data.insumos?.length && <p className="text-center py-8 ct-muted text-sm">No hay insumos en este período</p>}
               </div>
-            </div>
-          )}
-
-          {/* VENTAS */}
-          {tab === 'ventas' && data && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  {label:'Ingresos pagados',val:`S/ ${parseFloat(data.total_ingresos||0).toFixed(2)}`,icon:DollarSign,color:'#16a34a',bg:'#d1fae5'},
-                  {label:'Número de ventas',val:data.num_ventas||0,icon:ShoppingBag,color:'#1d4ed8',bg:'#dbeafe'},
-                ].map(({label,val,icon:Icon,color,bg})=>(
-                  <div key={label} className="card flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{background:bg}}>
-                      <Icon size={22} style={{color}}/>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide ct-muted">{label}</p>
-                      <p className="text-2xl font-bold ct-primary">{val}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="card overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b border-pink-100 dark:border-pink-900/20">
-                    {['Fecha','Cliente','Total','Pago','Estado'].map(h=><th key={h} className={thClass}>{h}</th>)}
-                  </tr></thead>
-                  <tbody className="divide-y divide-pink-50 dark:divide-pink-900/10">
-                    {(data.ventas||[]).map(v=>(
-                      <tr key={v.id} className="table-row-hover">
-                        <td className="py-2.5 text-xs ct-muted">{v.fecha_hora?new Date(v.fecha_hora).toLocaleString('es-PE'):'-'}</td>
-                        <td className="py-2.5 font-medium ct-primary">{v.cliente}</td>
-                        <td className="py-2.5 font-bold text-primary-600">S/ {parseFloat(v.total).toFixed(2)}</td>
-                        <td className="py-2.5"><span className={v.estado_pago==='pagado'?'badge badge-green':'badge badge-yellow'}>{v.estado_pago}</span></td>
-                        <td className="py-2.5"><span className={v.estado_venta==='completada'?'badge badge-blue':'badge badge-orange'}>{v.estado_venta}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!data.ventas?.length && <p className="text-center py-8 ct-muted text-sm">No hay ventas en este período</p>}
-              </div>
-            </div>
-          )}
-
-          {/* GANANCIA */}
-          {tab === 'ganancia' && data && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                {label:'Ingresos totales',val:data.ingresos_totales,color:'#16a34a',bg:'#d1fae5'},
-                {label:'Gasto en insumos',val:data.gasto_insumos,color:'#dc2626',bg:'#fee2e2'},
-                {label:'Ganancia estimada',val:data.ganancia_estimada,color:parseFloat(data.ganancia_estimada||0)>=0?'#15803d':'#dc2626',bg:parseFloat(data.ganancia_estimada||0)>=0?'#dcfce7':'#fee2e2'},
-              ].map(({label,val,color,bg})=>(
-                <div key={label} className="card text-center" style={{background:bg,borderColor:'transparent'}}>
-                  <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{color,opacity:0.75}}>{label}</p>
-                  <p className="text-3xl font-bold" style={{color}}>S/ {parseFloat(val||0).toFixed(2)}</p>
-                </div>
-              ))}
             </div>
           )}
 
@@ -413,10 +350,11 @@ export default function FinanzasPage() {
           {tab === 'ventas_detalle' && data && (
             <div className="space-y-4">
               {/* Resumen */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 {[
                   { label: 'Ventas', val: data.resumen?.num_ventas, color: 'text-blue-500' },
-                  { label: 'Ingresos', val: `S/ ${parseFloat(data.resumen?.total_ingresos||0).toFixed(2)}`, color: 'text-green-600' },
+                  { label: 'Ingresos facturados', val: `S/ ${parseFloat(data.resumen?.total_ingresos||0).toFixed(2)}`, color: 'text-green-600' },
+                  { label: 'Ingresos pagados', val: `S/ ${parseFloat(data.resumen?.ingresos_pagados||0).toFixed(2)}`, color: 'text-green-700' },
                   { label: 'Ganancia estimada', val: `S/ ${parseFloat(data.resumen?.ganancia_total||0).toFixed(2)}`, color: 'text-primary-600' },
                   { label: 'Margen promedio', val: `${data.resumen?.margen_promedio||0}%`, color: parseFloat(data.resumen?.margen_promedio||0) >= 30 ? 'text-green-600' : 'text-amber-500' },
                 ].map(c => (
@@ -449,7 +387,7 @@ export default function FinanzasPage() {
                           <td className="py-2.5">
                             {v.fuente_marketing
                               ? <span className="badge badge-pink text-xs">{v.fuente_marketing}</span>
-                              : <span className="text-xs ct-muted">orgánico</span>}
+                              : <span className="text-xs ct-muted">Ninguno</span>}
                           </td>
                           <td className="py-2.5 font-bold text-green-600">S/ {v.total_venta.toFixed(2)}</td>
                           <td className="py-2.5 ct-secondary">S/ {v.costo_estimado.toFixed(2)}</td>
@@ -501,43 +439,6 @@ export default function FinanzasPage() {
                   </tbody>
                 </table>
                 {!data.ventas?.length && <p className="text-center py-8 ct-muted text-sm">No hay ventas en este período</p>}
-              </div>
-            </div>
-          )}
-
-          {/* MARKETING (datos desde página Marketing) */}
-          {tab === 'marketing' && data && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="card py-3">
-                  <p className="text-xs ct-muted mb-1">Total invertido</p>
-                  <p className="text-xl font-bold text-rose-500">S/ {parseFloat(data.total_invertido||0).toFixed(2)}</p>
-                </div>
-                <div className="card py-3">
-                  <p className="text-xs ct-muted mb-1">Registros</p>
-                  <p className="text-xl font-bold ct-primary">{data.num_gastos}</p>
-                </div>
-              </div>
-              <div className="card overflow-x-auto">
-                <p className="text-xs ct-muted mb-3">Los gastos se registran desde la página <strong>Marketing → Inversión publicitaria</strong></p>
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b border-pink-100 dark:border-pink-900/20">
-                    {['Red social','Monto','Contactos','Compradores','Período','Descripción'].map(h=><th key={h} className={thClass}>{h}</th>)}
-                  </tr></thead>
-                  <tbody className="divide-y divide-pink-50 dark:divide-pink-900/10">
-                    {(data.gastos||[]).map(g => (
-                      <tr key={g.id} className="table-row-hover">
-                        <td className="py-2.5 font-medium ct-primary capitalize">{g.red_social.replace('_',' ')}</td>
-                        <td className="py-2.5 font-bold text-rose-500">S/ {parseFloat(g.monto).toFixed(2)}</td>
-                        <td className="py-2.5 ct-secondary">{g.num_contactos}</td>
-                        <td className="py-2.5 ct-secondary">{g.num_compradores}</td>
-                        <td className="py-2.5 text-xs ct-muted">{g.periodo||'—'}</td>
-                        <td className="py-2.5 text-xs ct-muted">{g.descripcion||'—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!data.gastos?.length && <p className="text-center py-8 ct-muted text-sm">No hay gastos de marketing en este período</p>}
               </div>
             </div>
           )}

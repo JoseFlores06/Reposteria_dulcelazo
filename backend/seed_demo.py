@@ -1,6 +1,6 @@
 """
 Datos de prueba para Dulce Lazo.
-Ejecutar UNA sola vez despues de correr seed.py:
+Ejecutar UNA sola vez despues de correr reset_db.py:
     python seed_demo.py
 """
 import sys, os
@@ -13,7 +13,7 @@ from models.base import Base
 from models.insumo import Insumo, UnidadInsumo
 from models.producto import Producto, ProductoInsumo, UnidadTiempo
 from models.paquete import Paquete, PaqueteProducto
-from models.promocion import Promocion, ItemTipoPromocion
+from models.promocion import Promocion, PromocionPaquete
 from models.cliente import Cliente
 from models.colaborador import Colaborador
 from services.costeo import calcular_costo_producto, calcular_precio_venta, calcular_costo_paquete
@@ -226,20 +226,18 @@ def seed_demo():
         promo_donas = Promocion(
             nombre="Lunes Feliz - Donas 15% off",
             descripcion="Cada lunes llevate tus donas favoritas con 15% de descuento.",
-            item_tipo=ItemTipoPromocion.producto,
-            item_id=donas.id,
             precio_original=donas.precio_venta,
             precio_promocion=(donas.precio_venta * Decimal("0.85")).quantize(Decimal("0.01")),
             porcentaje_descuento=Decimal("15"),
             activo=True,
         )
         db.add(promo_donas)
+        db.flush()
+        donas.promocion_id = promo_donas.id
 
         promo_pack = Promocion(
             nombre="Fin de Semana - Pack Cumpleanos 10% off",
             descripcion="Celebra este fin de semana con nuestro pack especial a precio reducido.",
-            item_tipo=ItemTipoPromocion.paquete,
-            item_id=pack_cumple.id,
             precio_original=pack_cumple.precio_venta,
             precio_promocion=(pack_cumple.precio_venta * Decimal("0.90")).quantize(Decimal("0.01")),
             porcentaje_descuento=Decimal("10"),
@@ -248,18 +246,20 @@ def seed_demo():
             fecha_fin=ahora + timedelta(days=30),
         )
         db.add(promo_pack)
+        db.flush()
+        db.add(PromocionPaquete(promocion_id=promo_pack.id, paquete_id=pack_cumple.id, descuento_adicional=0, activo=True))
 
         promo_cafe = Promocion(
             nombre="Pack Cafe Precio Especial",
             descripcion="Ideal para reuniones. Pie de limon + alfajores a precio de amigo.",
-            item_tipo=ItemTipoPromocion.paquete,
-            item_id=pack_cafe.id,
             precio_original=pack_cafe.precio_venta,
             precio_promocion=(pack_cafe.precio_venta * Decimal("0.88")).quantize(Decimal("0.01")),
             porcentaje_descuento=Decimal("12"),
             activo=True,
         )
         db.add(promo_cafe)
+        db.flush()
+        db.add(PromocionPaquete(promocion_id=promo_cafe.id, paquete_id=pack_cafe.id, descuento_adicional=0, activo=True))
 
         print("Creando clientes...")
         # CLIENTES

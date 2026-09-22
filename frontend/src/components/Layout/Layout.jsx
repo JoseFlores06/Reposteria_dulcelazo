@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import {
   ShoppingBag, Package, Tag, Users, Building2, Archive,
   Calendar, TrendingUp, LogOut, Menu, X, UserCog, Sun, Moon,
-  ChevronRight, Sparkles, Megaphone
+  ChevronRight, Sparkles
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -17,14 +17,13 @@ const navItems = [
   { to: '/colaboradores', label: 'Colaboradores', icon: UserCog,     soloAdmin: true  },
   { to: '/empresa',       label: 'Empresa',       icon: Building2,   soloAdmin: true  },
   { to: '/calendario',    label: 'Calendario',    icon: Calendar,    soloAdmin: true  },
-  { to: '/marketing',     label: 'Marketing',     icon: Megaphone,   soloAdmin: true  },
   { to: '/finanzas',      label: 'Finanzas',      icon: TrendingUp,  soloAdmin: true  },
   { to: '/usuarios',      label: 'Usuarios',      icon: UserCog,     soloAdmin: true  },
 ]
 
 const navGroups = [
   { label: 'Principal', items: ['ventas', 'productos', 'paquetes', 'promociones', 'clientes'] },
-  { label: 'Administración', items: ['insumos', 'colaboradores', 'empresa', 'calendario', 'marketing', 'finanzas', 'usuarios'] },
+  { label: 'Administración', items: ['insumos', 'colaboradores', 'empresa', 'calendario', 'finanzas', 'usuarios'] },
 ]
 
 export default function Layout() {
@@ -129,7 +128,7 @@ export default function Layout() {
 
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           <NavGroup label="Principal" keys={['ventas', 'productos', 'paquetes', 'promociones', 'clientes']} />
-          {isAdmin && <NavGroup label="Administración" keys={['insumos', 'colaboradores', 'empresa', 'calendario', 'marketing', 'finanzas', 'usuarios']} />}
+          {isAdmin && <NavGroup label="Administración" keys={['insumos', 'colaboradores', 'empresa', 'calendario', 'finanzas', 'usuarios']} />}
         </nav>
 
         <div className={`px-4 py-4 border-t ${dark ? 'border-[#2e1f2a]' : 'border-[#fce7f3]'}`}>

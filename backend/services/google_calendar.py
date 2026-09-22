@@ -109,8 +109,8 @@ def get_calendar_service(refresh_token: str):
 
 def esta_conectado(db) -> bool:
     """Verifica si hay un refresh_token guardado."""
-    from models.configuracion_google import ConfiguracionGoogle
-    cfg = db.query(ConfiguracionGoogle).first()
+    from models.calendario import Calendario
+    cfg = db.query(Calendario).first()
     return cfg is not None and bool(cfg.refresh_token)
 
 
@@ -122,8 +122,8 @@ def crear_evento_stock_bajo(db, insumos_bajos: list) -> bool:
     if not insumos_bajos:
         return False
 
-    from models.configuracion_google import ConfiguracionGoogle
-    cfg = db.query(ConfiguracionGoogle).first()
+    from models.calendario import Calendario
+    cfg = db.query(Calendario).first()
     if not cfg or not cfg.refresh_token:
         return False
 
@@ -167,8 +167,8 @@ def crear_evento_stock_bajo(db, insumos_bajos: list) -> bool:
 
 def crear_evento_venta(db, venta, fecha_entrega: datetime) -> bool:
     """Crea un recordatorio de entrega en Google Calendar."""
-    from models.configuracion_google import ConfiguracionGoogle
-    cfg = db.query(ConfiguracionGoogle).first()
+    from models.calendario import Calendario
+    cfg = db.query(Calendario).first()
     if not cfg or not cfg.refresh_token:
         return False
 

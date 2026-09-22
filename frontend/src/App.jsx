@@ -10,7 +10,6 @@ import PromocionesPage from './pages/PromocionesPage'
 import ClientesPage from './pages/ClientesPage'
 import ColaboradoresPage from './pages/ColaboradoresPage'
 import CalendarioPage from './pages/CalendarioPage'
-import MarketingPage from './pages/MarketingPage'
 import VentasPage from './pages/VentasPage'
 import FinanzasPage from './pages/FinanzasPage'
 import UsuariosPage from './pages/UsuariosPage'
@@ -39,7 +38,6 @@ function AppRoutes() {
         <Route path="insumos" element={<RutaProtegida soloAdmin><InsumosPage /></RutaProtegida>} />
         <Route path="colaboradores" element={<RutaProtegida soloAdmin><ColaboradoresPage /></RutaProtegida>} />
         <Route path="calendario" element={<RutaProtegida soloAdmin><CalendarioPage /></RutaProtegida>} />
-        <Route path="marketing" element={<RutaProtegida soloAdmin><MarketingPage /></RutaProtegida>} />
         <Route path="finanzas" element={<RutaProtegida soloAdmin><FinanzasPage /></RutaProtegida>} />
         <Route path="usuarios" element={<RutaProtegida soloAdmin><UsuariosPage /></RutaProtegida>} />
       </Route>

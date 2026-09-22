@@ -22,9 +22,11 @@ class Producto(Base):
     precio_venta = Column(Numeric(12, 2), nullable=True)
     porcentaje_ganancia = Column(Numeric(5, 2), nullable=True)
     activo = Column(Boolean, default=True)
+    promocion_id = Column(Integer, ForeignKey("promociones.id", ondelete="SET NULL"), nullable=True)
 
     insumos = relationship("ProductoInsumo", back_populates="producto", cascade="all, delete-orphan")
     paquete_items = relationship("PaqueteProducto", back_populates="producto")
+    promocion = relationship("Promocion", back_populates="productos")
 
 
 class ProductoInsumo(Base):

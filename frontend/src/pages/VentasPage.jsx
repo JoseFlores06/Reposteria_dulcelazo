@@ -18,7 +18,6 @@ const FUENTES_MARKETING = [
   { value: 'instagram', label: 'Instagram' },
   { value: 'tiktok', label: 'TikTok' },
   { value: 'whatsapp', label: 'WhatsApp' },
-  { value: 'google_ads', label: 'Google Ads' },
   { value: 'otro', label: 'Otro' },
 ]
 const UNIDAD_A_HORAS = { horas: 1, dias: 24, semanas: 168 }

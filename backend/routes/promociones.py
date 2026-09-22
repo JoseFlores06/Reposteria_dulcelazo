@@ -8,7 +8,7 @@ from decimal import Decimal
 from datetime import datetime
 
 from database import get_db
-from models.promocion import Promocion, ItemTipoPromocion
+from models.promocion import Promocion, PromocionPaquete
 from models.producto import Producto
 from models.paquete import Paquete
 from models.usuario import Usuario
@@ -29,14 +29,26 @@ def redimensionar_imagen(ruta: str):
         pass
 
 
-def promocion_to_dict(p: Promocion):
+def _item_asociado(db: Session, promo_id: int):
+    """Encuentra a qué producto o paquete está ligada la promoción."""
+    prod = db.query(Producto).filter(Producto.promocion_id == promo_id).first()
+    if prod:
+        return "producto", prod.id
+    pp = db.query(PromocionPaquete).filter(PromocionPaquete.promocion_id == promo_id).first()
+    if pp:
+        return "paquete", pp.paquete_id
+    return None, None
+
+
+def promocion_to_dict(db: Session, p: Promocion):
+    item_tipo, item_id = _item_asociado(db, p.id)
     return {
         "id": p.id,
         "nombre": p.nombre,
         "foto": p.foto,
         "descripcion": p.descripcion,
-        "item_tipo": p.item_tipo,
-        "item_id": p.item_id,
+        "item_tipo": item_tipo,
+        "item_id": item_id,
         "precio_original": float(p.precio_original),
         "precio_promocion": float(p.precio_promocion),
         "porcentaje_descuento": float(p.porcentaje_descuento),
@@ -64,11 +76,10 @@ def listar_promociones(
     db: Session = Depends(get_db),
     _: Usuario = Depends(requerir_autenticado)
 ):
-    query = db.query(Promocion)
-    promociones = query.order_by(Promocion.creado_en.desc()).all()
+    promociones = db.query(Promocion).order_by(Promocion.creado_en.desc()).all()
     resultado = []
     for p in promociones:
-        d = promocion_to_dict(p)
+        d = promocion_to_dict(db, p)
         d["activa_ahora"] = esta_activa_por_fechas(p)
         if solo_activas is not None and solo_activas != d["activa_ahora"]:
             continue
@@ -81,7 +92,7 @@ def obtener_promocion(promocion_id: int, db: Session = Depends(get_db), _: Usuar
     p = db.query(Promocion).filter(Promocion.id == promocion_id).first()
     if not p:
         raise HTTPException(status_code=404, detail="Promoción no encontrada")
-    d = promocion_to_dict(p)
+    d = promocion_to_dict(db, p)
     d["activa_ahora"] = esta_activa_por_fechas(p)
     return d
 
@@ -100,17 +111,18 @@ async def crear_promocion(
     db: Session = Depends(get_db),
     _: Usuario = Depends(requerir_admin)
 ):
-    # Obtener precio original
     if item_tipo == "producto":
         item = db.query(Producto).filter(Producto.id == item_id).first()
         if not item:
             raise HTTPException(status_code=404, detail="Producto no encontrado")
         precio_original = item.precio_venta
-    else:
+    elif item_tipo == "paquete":
         item = db.query(Paquete).filter(Paquete.id == item_id).first()
         if not item:
             raise HTTPException(status_code=404, detail="Paquete no encontrado")
         precio_original = item.precio_venta
+    else:
+        raise HTTPException(status_code=400, detail="item_tipo debe ser 'producto' o 'paquete'")
 
     descuento = Decimal(str(porcentaje_descuento))
     precio_promocion = precio_original * (1 - descuento / 100)
@@ -130,8 +142,6 @@ async def crear_promocion(
         nombre=nombre,
         foto=foto_path,
         descripcion=descripcion,
-        item_tipo=item_tipo,
-        item_id=item_id,
         precio_original=precio_original,
         precio_promocion=precio_promocion,
         porcentaje_descuento=descuento,
@@ -140,6 +150,13 @@ async def crear_promocion(
         fecha_fin=datetime.fromisoformat(fecha_fin) if fecha_fin else None,
     )
     db.add(promo)
+    db.flush()
+
+    if item_tipo == "producto":
+        item.promocion_id = promo.id
+    else:
+        db.add(PromocionPaquete(promocion_id=promo.id, paquete_id=item_id, descuento_adicional=0, activo=True))
+
     db.commit()
     db.refresh(promo)
     return {"mensaje": "Promoción creada correctamente", "id": promo.id}

@@ -1,15 +1,16 @@
 # Dulce Lazo
 
 Sistema de gestión para pastelería. Cubre el ciclo completo del negocio: insumos y
-stock, costeo de productos, ventas con boleta, clientes, colaboradores, finanzas,
-marketing y calendario de pedidos.
+stock, costeo de productos, ventas con boleta, clientes, colaboradores, promociones,
+finanzas y calendario de pedidos.
 
 ## Stack
 
 - **Backend:** FastAPI + SQLAlchemy + MySQL, autenticación con JWT.
 - **Frontend:** React + Vite + Tailwind CSS.
 - **Integraciones:** Google Calendar (OAuth2) para eventos de pedidos y alertas de
-  stock, Groq (IA) para sugerencias de marketing y análisis de ventas.
+  stock, Groq (IA) para sugerencias de promociones, nombres de producto y análisis
+  de ventas.
 
 ## Módulos
 
@@ -17,12 +18,13 @@ marketing y calendario de pedidos.
 |---|---|
 | Insumos | Stock de materia prima, mermas, alerta de stock bajo |
 | Productos / Paquetes | Costeo automático a partir de la receta de insumos |
-| Ventas | Registro de pedidos, descuento de stock, boleta en PDF |
+| Promociones | Descuentos sobre productos o paquetes, con sugerencias de la IA |
+| Ventas | Registro de pedidos, descuento de stock, boleta en PDF, ganancia por venta |
 | Clientes | Datos de contacto y direcciones de entrega |
 | Colaboradores | Personal y pagos |
-| Finanzas | Reportes de ingresos, costos y ganancia |
-| Marketing | Gastos por red social, ROI, mensajes y prompts publicitarios con IA |
+| Finanzas | Reportes de insumos, ventas, ganancia y pagos a colaboradores |
 | Calendario | Sincronización de pedidos y alertas con Google Calendar |
+| Usuarios | Alta de cuentas internas (vendedor / administrador), solo para admins |
 
 ## Requisitos
 
@@ -55,17 +57,28 @@ Crea la base de datos (el nombre debe coincidir con el de tu `DATABASE_URL`):
 CREATE DATABASE dulce_lazo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Levanta el servidor (crea las tablas automáticamente al iniciar):
+Crea las tablas y el primer usuario (SuperUsuario) con:
+
+```bash
+python reset_db.py
+```
+
+El correo y la clave del SuperUsuario se toman de `SUPERUSUARIO_EMAIL` /
+`SUPERUSUARIO_PASSWORD` en tu `.env`; si no los defines, se genera una clave
+aleatoria y se muestra una sola vez por consola. Con esa cuenta ya puedes entrar
+y crear al resto del personal desde el módulo Usuarios ("Nuevo usuario").
+
+Opcionalmente, para tener datos de ejemplo:
+
+```bash
+python seed_demo.py        # insumos, productos, paquetes, promociones y clientes
+python seed_actividad.py   # ventas y pagos de ejemplo, usando la lógica real de stock
+```
+
+Con las tablas ya creadas, levanta el servidor:
 
 ```bash
 uvicorn main:app --reload --port 8000
-```
-
-Para tener datos iniciales, corre uno de estos scripts una sola vez:
-
-```bash
-python seed.py         # solo los 2 usuarios administradores + empresa
-python seed_demo.py    # además, insumos/productos/paquetes de ejemplo
 ```
 
 ## Frontend

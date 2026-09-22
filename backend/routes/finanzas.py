@@ -10,12 +10,36 @@ from models.insumo import Insumo
 from models.venta import Venta, VentaItem, EstadoPago
 from models.colaborador import Colaborador
 from models.finanzas import PagoColaborador
-from models.marketing import GastoMarketing
 from models.usuario import Usuario
+from models.producto import Producto
+from models.paquete import Paquete
+from models.promocion import PromocionPaquete
 from auth import requerir_admin
 from utils.timezone import now_lima
 
 router = APIRouter()
+
+
+def _costo_real_unitario(db: Session, item_tipo: str, item_id: int) -> float:
+    """Costo real de producción (insumos) de un item vendido, sea que se haya
+    vendido como producto suelto, dentro de un paquete o a través de una promoción."""
+    if item_tipo == "producto":
+        prod = db.query(Producto).filter(Producto.id == item_id).first()
+        return float(prod.precio_costo) if prod and prod.precio_costo else 0.0
+
+    if item_tipo == "paquete":
+        paquete = db.query(Paquete).filter(Paquete.id == item_id).first()
+        return float(paquete.precio_costo_real) if paquete and paquete.precio_costo_real else 0.0
+
+    if item_tipo == "promocion":
+        prod = db.query(Producto).filter(Producto.promocion_id == item_id).first()
+        if prod and prod.precio_costo:
+            return float(prod.precio_costo)
+        pp = db.query(PromocionPaquete).filter(PromocionPaquete.promocion_id == item_id).first()
+        if pp and pp.paquete and pp.paquete.precio_costo_real:
+            return float(pp.paquete.precio_costo_real)
+
+    return 0.0
 
 
 class PagoCreate(BaseModel):
@@ -77,68 +101,6 @@ def reporte_insumos(
             for i in insumos
         ],
         "total_gasto": total,
-    }
-
-
-@router.get("/ventas")
-def reporte_ventas(
-    mes: Optional[int] = None,
-    anio: Optional[int] = None,
-    db: Session = Depends(get_db),
-    _: Usuario = Depends(requerir_admin),
-):
-    query = db.query(Venta).options(joinedload(Venta.cliente))
-    if anio:
-        query = query.filter(extract("year", Venta.fecha_hora) == anio)
-    if mes:
-        query = query.filter(extract("month", Venta.fecha_hora) == mes)
-
-    ventas = query.order_by(Venta.fecha_hora.desc()).all()
-    total_ingresos = sum(float(v.total) for v in ventas if v.estado_pago == EstadoPago.pagado)
-
-    return {
-        "ventas": [
-            {
-                "id": v.id,
-                "fecha_hora": v.fecha_hora.isoformat() if v.fecha_hora else None,
-                "cliente": f"{v.cliente.nombres} {v.cliente.apellidos}" if v.cliente else "Sin cliente",
-                "total": float(v.total),
-                "estado_pago": v.estado_pago,
-                "estado_venta": v.estado_venta,
-            }
-            for v in ventas
-        ],
-        "total_ingresos": total_ingresos,
-        "num_ventas": len(ventas),
-    }
-
-
-@router.get("/ganancia")
-def reporte_ganancia(
-    mes: Optional[int] = None,
-    anio: Optional[int] = None,
-    db: Session = Depends(get_db),
-    _: Usuario = Depends(requerir_admin),
-):
-    query_ventas = db.query(Venta).filter(Venta.estado_pago == EstadoPago.pagado)
-    query_insumos = db.query(Insumo).filter(Insumo.comprado == True)
-
-    if anio:
-        query_ventas = query_ventas.filter(extract("year", Venta.fecha_hora) == anio)
-        query_insumos = query_insumos.filter(extract("year", Insumo.fecha_ingreso) == anio)
-    if mes:
-        query_ventas = query_ventas.filter(extract("month", Venta.fecha_hora) == mes)
-        query_insumos = query_insumos.filter(extract("month", Insumo.fecha_ingreso) == mes)
-
-    ingresos = sum(float(v.total) for v in query_ventas.all())
-    gasto_insumos = sum(
-        float(i.precio_unitario) * float(i.stock_actual) for i in query_insumos.all()
-    )
-
-    return {
-        "ingresos_totales": ingresos,
-        "gasto_insumos": gasto_insumos,
-        "ganancia_estimada": ingresos - gasto_insumos,
     }
 
 
@@ -295,6 +257,7 @@ def ventas_con_ganancia(
 
     resultado = []
     total_ingresos = 0
+    ingresos_pagados = 0
     total_costo = 0
 
     for v in ventas:
@@ -305,14 +268,7 @@ def ventas_con_ganancia(
             cantidad = item.cantidad
             subtotal_venta = precio_venta_u * cantidad
 
-            # Costo aproximado: buscamos en el producto si existe
-            from models.producto import Producto
-            costo_u = 0.0
-            if item.item_tipo == "producto":
-                prod = db.query(Producto).filter(Producto.id == item.item_id).first()
-                if prod and prod.precio_costo:
-                    costo_u = float(prod.precio_costo)
-
+            costo_u = _costo_real_unitario(db, item.item_tipo, item.item_id)
             costo_item = costo_u * cantidad
             costo_venta += costo_item
             ganancia_item = subtotal_venta - costo_item
@@ -336,6 +292,8 @@ def ventas_con_ganancia(
 
         total_ingresos += total_venta
         total_costo += costo_venta
+        if v.estado_pago == EstadoPago.pagado:
+            ingresos_pagados += total_venta
 
         resultado.append({
             "id": v.id,
@@ -360,6 +318,7 @@ def ventas_con_ganancia(
         "resumen": {
             "num_ventas": len(resultado),
             "total_ingresos": round(total_ingresos, 2),
+            "ingresos_pagados": round(ingresos_pagados, 2),
             "total_costo": round(total_costo, 2),
             "ganancia_total": round(ganancia_total, 2),
             "margen_promedio": margen_total,
@@ -426,7 +385,7 @@ def dashboard(
         metodo = v.metodo_pago or "otro"
         metodos[metodo] = metodos.get(metodo, 0) + 1
 
-        fuente = v.fuente_marketing or "organico"
+        fuente = v.fuente_marketing or "Ninguno"
         fuentes[fuente] = fuentes.get(fuente, 0) + 1
 
         for item in v.items:
@@ -449,37 +408,3 @@ def dashboard(
     }
 
 
-@router.get("/marketing")
-def resumen_marketing(
-    mes: Optional[int] = None,
-    anio: Optional[int] = None,
-    db: Session = Depends(get_db),
-    _: Usuario = Depends(requerir_admin),
-):
-    """Gastos de marketing para la sub-pestaña en Finanzas."""
-    query = db.query(GastoMarketing)
-    if anio:
-        query = query.filter(extract("year", GastoMarketing.fecha) == anio)
-    if mes:
-        query = query.filter(extract("month", GastoMarketing.fecha) == mes)
-
-    gastos = query.order_by(GastoMarketing.fecha.desc()).all()
-    total = sum(float(g.monto) for g in gastos)
-
-    return {
-        "gastos": [
-            {
-                "id": g.id,
-                "red_social": g.red_social,
-                "monto": float(g.monto),
-                "fecha": g.fecha.isoformat() if g.fecha else None,
-                "descripcion": g.descripcion,
-                "num_contactos": g.num_contactos,
-                "num_compradores": g.num_compradores,
-                "periodo": g.periodo,
-            }
-            for g in gastos
-        ],
-        "total_invertido": total,
-        "num_gastos": len(gastos),
-    }

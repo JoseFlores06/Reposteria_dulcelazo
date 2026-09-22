@@ -2,8 +2,8 @@ from sqlalchemy import Column, Integer, String, Text, DateTime
 from .base import Base
 
 
-class ConfiguracionGoogle(Base):
-    __tablename__ = "configuracion_google"
+class Calendario(Base):
+    __tablename__ = "calendario"
 
     id = Column(Integer, primary_key=True, index=True)
     access_token = Column(Text, nullable=True)
