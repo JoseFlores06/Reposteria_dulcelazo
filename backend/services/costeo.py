@@ -1,6 +1,11 @@
 import math
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import List, Dict
+
+
+class PorcentajeGananciaInvalido(ValueError):
+    """El porcentaje de ganancia debe estar entre 0 y 99.99.
+    main.py lo convierte en una respuesta HTTP 400 (DEF-DL-006)."""
 
 
 def redondear_precio_peru(precio: Decimal) -> Decimal:
@@ -23,8 +28,14 @@ def calcular_precio_venta(costo_total: Decimal, porcentaje_ganancia: Decimal) ->
     Fórmula de margen: precio_venta = costo_total / (1 - porcentaje_ganancia / 100)
     El resultado se redondea al precio peruano más cercano (.00/.50/.90/.99)
     """
+    porcentaje_ganancia = Decimal(str(porcentaje_ganancia))
     if porcentaje_ganancia >= 100:
-        raise ValueError("El porcentaje de ganancia no puede ser 100% o más")
+        raise PorcentajeGananciaInvalido("El porcentaje de ganancia no puede ser 100% o más")
+    if porcentaje_ganancia < 0:
+        raise PorcentajeGananciaInvalido("El porcentaje de ganancia no puede ser negativo")
+    if porcentaje_ganancia == 0:
+        # DEF-DL-004: sin ganancia el precio de venta es el costo (sin redondeo comercial)
+        return Decimal(str(costo_total)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     factor = Decimal("1") - (porcentaje_ganancia / Decimal("100"))
     precio_exacto = costo_total / factor
     return redondear_precio_peru(precio_exacto)

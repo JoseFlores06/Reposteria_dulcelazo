@@ -8,7 +8,7 @@ from database import get_db
 from models.insumo import Insumo, UnidadInsumo
 from models.merma_insumo import MermaInsumo
 from models.usuario import Usuario
-from auth import requerir_admin, requerir_autenticado
+from auth import requerir_admin
 from utils.timezone import now_lima
 
 router = APIRouter()
@@ -67,7 +67,7 @@ def merma_to_dict(m: MermaInsumo):
 def listar_insumos(
     activo: Optional[bool] = None,
     db: Session = Depends(get_db),
-    _: Usuario = Depends(requerir_autenticado)
+    _: Usuario = Depends(requerir_admin)  # DEF-DL-001: antes cualquier usuario autenticado
 ):
     query = db.query(Insumo)
     if activo is not None:
@@ -80,7 +80,7 @@ def listar_mermas(
     insumo_id: Optional[int] = None,
     limite: int = 50,
     db: Session = Depends(get_db),
-    _: Usuario = Depends(requerir_autenticado),
+    _: Usuario = Depends(requerir_admin),  # DEF-DL-001
 ):
     """Historial de bajas/mermas de insumos (las más recientes primero)."""
     query = db.query(MermaInsumo).options(joinedload(MermaInsumo.insumo))
@@ -91,7 +91,7 @@ def listar_mermas(
 
 
 @router.get("/{insumo_id}")
-def obtener_insumo(insumo_id: int, db: Session = Depends(get_db), _: Usuario = Depends(requerir_autenticado)):
+def obtener_insumo(insumo_id: int, db: Session = Depends(get_db), _: Usuario = Depends(requerir_admin)):  # DEF-DL-001
     insumo = db.query(Insumo).filter(Insumo.id == insumo_id).first()
     if not insumo:
         raise HTTPException(status_code=404, detail="Insumo no encontrado")
@@ -100,12 +100,19 @@ def obtener_insumo(insumo_id: int, db: Session = Depends(get_db), _: Usuario = D
 
 @router.post("")
 def crear_insumo(data: InsumoCreate, db: Session = Depends(get_db), _: Usuario = Depends(requerir_admin)):
-    if data.cantidad_compra <= 0:
-        raise HTTPException(status_code=400, detail="La cantidad de compra debe ser mayor a 0")
+    # DEF-DL-002: se permite registrar un insumo con stock 0 (aún no comprado),
+    # siempre que el precio también sea 0. Se completa luego con «Reabastecer».
+    if data.cantidad_compra < 0:
+        raise HTTPException(status_code=400, detail="La cantidad de compra no puede ser negativa")
     if data.precio_compra < 0:
         raise HTTPException(status_code=400, detail="El precio de compra no puede ser negativo")
+    if data.cantidad_compra == 0 and data.precio_compra > 0:
+        raise HTTPException(status_code=400, detail="Si la cantidad es 0, el precio pagado también debe ser 0")
 
-    precio_unitario = (data.precio_compra / data.cantidad_compra).quantize(Decimal("0.000001"))
+    if data.cantidad_compra == 0:
+        precio_unitario = Decimal("0")
+    else:
+        precio_unitario = (data.precio_compra / data.cantidad_compra).quantize(Decimal("0.000001"))
 
     insumo = Insumo(
         nombre=data.nombre,

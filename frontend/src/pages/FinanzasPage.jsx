@@ -355,7 +355,7 @@ export default function FinanzasPage() {
                   { label: 'Ventas', val: data.resumen?.num_ventas, color: 'text-blue-500' },
                   { label: 'Ingresos facturados', val: `S/ ${parseFloat(data.resumen?.total_ingresos||0).toFixed(2)}`, color: 'text-green-600' },
                   { label: 'Ingresos pagados', val: `S/ ${parseFloat(data.resumen?.ingresos_pagados||0).toFixed(2)}`, color: 'text-green-700' },
-                  { label: 'Ganancia estimada', val: `S/ ${parseFloat(data.resumen?.ganancia_total||0).toFixed(2)}`, color: 'text-primary-600' },
+                  { label: 'Ganancia estimada (ventas pagadas)', val: `S/ ${parseFloat(data.resumen?.ganancia_total||0).toFixed(2)}`, color: 'text-primary-600' },
                   { label: 'Margen promedio', val: `${data.resumen?.margen_promedio||0}%`, color: parseFloat(data.resumen?.margen_promedio||0) >= 30 ? 'text-green-600' : 'text-amber-500' },
                 ].map(c => (
                   <div key={c.label} className="card py-3">
