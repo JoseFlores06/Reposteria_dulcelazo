@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session, joinedload
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from decimal import Decimal
 from datetime import datetime
@@ -14,7 +14,8 @@ from models.paquete import Paquete
 from models.promocion import Promocion
 from auth import requerir_autenticado, requerir_admin, obtener_usuario_actual
 from services.pdf_service import generar_boleta_pdf
-from services.stock_service import verificar_stock, descontar_stock, insumos_stock_bajo
+from services.stock_service import verificar_stock, verificar_pedido, descontar_pedido
+from services.promocion_service import esta_vigente
 from services.google_calendar import crear_evento_stock_bajo, crear_evento_venta, esta_conectado
 from utils.timezone import now_lima
 
@@ -24,7 +25,7 @@ router = APIRouter()
 class VentaItemCreate(BaseModel):
     item_tipo: ItemTipoVenta
     item_id: int
-    cantidad: int
+    cantidad: int = Field(gt=0)  # DEF-DL-010: antes aceptaba 0 y negativos (el stock subía)
 
 
 class VentaCreate(BaseModel):
@@ -34,7 +35,7 @@ class VentaCreate(BaseModel):
     fecha_entrega: Optional[datetime] = None
     fuente_marketing: Optional[str] = None
     direccion_entrega: Optional[str] = None
-    items: List[VentaItemCreate]
+    items: List[VentaItemCreate] = Field(min_length=1)  # DEF-DL-010: venta sin ítems
 
 
 def venta_to_dict(v: Venta, incluir_items: bool = False):
@@ -83,9 +84,12 @@ def obtener_precio_item(db: Session, item_tipo: str, item_id: int):
             raise HTTPException(status_code=404, detail=f"Paquete {item_id} no encontrado o inactivo")
         return obj.nombre, obj.precio_venta
     elif item_tipo == "promocion":
-        obj = db.query(Promocion).filter(Promocion.id == item_id, Promocion.activo == True).first()
+        obj = db.query(Promocion).filter(Promocion.id == item_id).first()
         if not obj:
-            raise HTTPException(status_code=404, detail=f"Promoción {item_id} no encontrada o inactiva")
+            raise HTTPException(status_code=404, detail=f"Promoción {item_id} no encontrada")
+        # DEF-DL-007: una promoción vencida (o desactivada) no se puede vender
+        if not esta_vigente(obj):
+            raise HTTPException(status_code=422, detail=f"La promoción «{obj.nombre}» no está vigente")
         return obj.nombre, obj.precio_promocion
     raise HTTPException(status_code=400, detail="Tipo de item inválido")
 
@@ -114,18 +118,8 @@ def listar_ventas(
     return [venta_to_dict(v, incluir_items=True) for v in query.all()]
 
 
-@router.get("/{venta_id}")
-def obtener_venta(venta_id: int, db: Session = Depends(get_db), _: Usuario = Depends(requerir_autenticado)):
-    v = db.query(Venta).options(
-        joinedload(Venta.cliente),
-        joinedload(Venta.colaborador),
-        joinedload(Venta.items),
-    ).filter(Venta.id == venta_id).first()
-    if not v:
-        raise HTTPException(status_code=404, detail="Venta no encontrada")
-    return venta_to_dict(v, incluir_items=True)
-
-
+# DEF-DL-009: esta ruta debe declararse ANTES de "/{venta_id}"; si no, FastAPI
+# intenta leer "verificar-stock" como id de venta y responde 422.
 @router.get("/verificar-stock")
 def verificar_stock_pedido(
     item_tipo: str,
@@ -139,6 +133,18 @@ def verificar_stock_pedido(
     return {"disponible": len(errores) == 0, "errores": errores}
 
 
+@router.get("/{venta_id}")
+def obtener_venta(venta_id: int, db: Session = Depends(get_db), _: Usuario = Depends(requerir_autenticado)):
+    v = db.query(Venta).options(
+        joinedload(Venta.cliente),
+        joinedload(Venta.colaborador),
+        joinedload(Venta.items),
+    ).filter(Venta.id == venta_id).first()
+    if not v:
+        raise HTTPException(status_code=404, detail="Venta no encontrada")
+    return venta_to_dict(v, incluir_items=True)
+
+
 @router.post("")
 def crear_venta(
     data: VentaCreate,
@@ -149,12 +155,12 @@ def crear_venta(
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
-    # 1. Verificar stock antes de crear la venta
-    errores_stock: list[str] = []
-    for item_data in data.items:
-        if item_data.item_tipo in ("producto", "paquete"):
-            errs = verificar_stock(db, item_data.item_tipo, item_data.item_id, item_data.cantidad)
-            errores_stock.extend(errs)
+    # 1. Validar cada ítem (existe, activo, promoción vigente) ANTES de tocar nada
+    precios = [obtener_precio_item(db, it.item_tipo, it.item_id) for it in data.items]
+
+    # 2. Verificar stock del pedido completo (sumando insumos repetidos entre ítems
+    #    e incluyendo los de las promociones — DEF-DL-011)
+    errores_stock = verificar_pedido(db, data.items)
 
     if errores_stock:
         raise HTTPException(
@@ -166,7 +172,7 @@ def crear_venta(
             },
         )
 
-    # 2. Crear la venta
+    # 3. Crear la venta
     venta = Venta(
         cliente_id=data.cliente_id,
         colaborador_id=usuario.id,
@@ -185,8 +191,7 @@ def crear_venta(
     db.flush()
 
     total = Decimal("0")
-    for item_data in data.items:
-        nombre, precio_unitario = obtener_precio_item(db, item_data.item_tipo, item_data.item_id)
+    for item_data, (nombre, precio_unitario) in zip(data.items, precios):
         subtotal_item = precio_unitario * item_data.cantidad
         total += subtotal_item
 
@@ -204,25 +209,13 @@ def crear_venta(
     venta.subtotal = total
     venta.total = total
 
-    # 3. Descontar stock
-    insumos_bajos: list = []
-    for item_data in data.items:
-        if item_data.item_tipo in ("producto", "paquete"):
-            bajos = descontar_stock(db, item_data.item_tipo, item_data.item_id, item_data.cantidad)
-            insumos_bajos.extend(bajos)
-
-    # Eliminar duplicados por id
-    seen_ids = set()
-    insumos_bajos_uniq = []
-    for ins in insumos_bajos:
-        if ins.id not in seen_ids:
-            seen_ids.add(ins.id)
-            insumos_bajos_uniq.append(ins)
+    # 4. Descontar stock (una sola vez por insumo, ya agregado por pedido)
+    insumos_bajos_uniq = descontar_pedido(db, data.items)
 
     db.commit()
     db.refresh(venta)
 
-    # 4. Crear eventos en Google Calendar (post-commit)
+    # 5. Crear eventos en Google Calendar (post-commit)
     alertas: list[str] = []
     if insumos_bajos_uniq:
         names = [f"{i.nombre} ({float(i.stock_actual):.1f} {i.unidad})" for i in insumos_bajos_uniq]
