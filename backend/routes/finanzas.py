@@ -259,6 +259,7 @@ def ventas_con_ganancia(
     total_ingresos = 0
     ingresos_pagados = 0
     total_costo = 0
+    costo_pagadas = 0
 
     for v in ventas:
         items_detalle = []
@@ -294,6 +295,7 @@ def ventas_con_ganancia(
         total_costo += costo_venta
         if v.estado_pago == EstadoPago.pagado:
             ingresos_pagados += total_venta
+            costo_pagadas += costo_venta
 
         resultado.append({
             "id": v.id,
@@ -310,8 +312,11 @@ def ventas_con_ganancia(
             "items": items_detalle,
         })
 
-    ganancia_total = total_ingresos - total_costo
-    margen_total = round(ganancia_total / total_ingresos * 100, 1) if total_ingresos > 0 else 0
+    # DEF-DL-005: la ganancia estimada del período solo considera ventas PAGADAS
+    # (CA-029). Lo facturado pendiente de cobro se informa aparte.
+    ganancia_total = ingresos_pagados - costo_pagadas
+    ganancia_facturada = total_ingresos - total_costo
+    margen_total = round(ganancia_total / ingresos_pagados * 100, 1) if ingresos_pagados > 0 else 0
 
     return {
         "ventas": resultado,
@@ -321,6 +326,7 @@ def ventas_con_ganancia(
             "ingresos_pagados": round(ingresos_pagados, 2),
             "total_costo": round(total_costo, 2),
             "ganancia_total": round(ganancia_total, 2),
+            "ganancia_facturada": round(ganancia_facturada, 2),
             "margen_promedio": margen_total,
         }
     }
