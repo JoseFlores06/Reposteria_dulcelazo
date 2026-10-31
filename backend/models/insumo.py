@@ -13,6 +13,11 @@ class UnidadInsumo(str, enum.Enum):
     mg = "mg"
     unidad = "unidad"
 
+    # DEF-DL-003: desde Python 3.11, f"{UnidadInsumo.mg}" devuelve
+    # "UnidadInsumo.mg". Los mensajes al usuario deben mostrar solo "mg".
+    def __str__(self) -> str:
+        return self.value
+
 
 class Insumo(Base):
     __tablename__ = "insumos"

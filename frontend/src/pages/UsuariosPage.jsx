@@ -6,6 +6,14 @@ import toast from 'react-hot-toast'
 
 const emptyForm = { nombres: '', apellidos: '', correo: '', password: '', rol: 'vendedor', activo: true }
 
+// DEF-DL-008: el backend ahora valida los datos y responde 422 con una lista de
+// errores; se muestran como texto legible en lugar de un objeto.
+const mensajeError = (err) => {
+  const detail = err.response?.data?.detail
+  if (Array.isArray(detail)) return detail.map(d => (d.msg || '').replace(/^Value error, /, '')).join(' · ')
+  return typeof detail === 'string' ? detail : 'Error'
+}
+
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState([])
   const [colaboradores, setColaboradores] = useState([])
@@ -40,7 +48,7 @@ export default function UsuariosPage() {
       if (modo === 'nuevo') { await crearUsuario(form); toast.success('Usuario creado') }
       else { const d = { ...form }; if (!d.password) delete d.password; await actualizarUsuario(editId, d); toast.success('Usuario actualizado') }
       setModo('lista'); cargar()
-    } catch (err) { toast.error(err.response?.data?.detail || 'Error') }
+    } catch (err) { toast.error(mensajeError(err)) }
     finally { setSaving(false) }
   }
 

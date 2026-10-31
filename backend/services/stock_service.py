@@ -59,6 +59,61 @@ def _insumos_de_paquete(db: Session, paquete_id: int) -> list[tuple[Insumo, Deci
     return list(acum.values())
 
 
+def _resolver_item(db: Session, item_tipo: str, item_id: int) -> tuple[str | None, int | None]:
+    """Una promoción consume los insumos del producto o paquete al que está ligada
+    (DEF-DL-011: antes vender una promoción no descontaba ningún insumo)."""
+    item_tipo = getattr(item_tipo, "value", item_tipo)
+    if item_tipo == "promocion":
+        from services.promocion_service import item_de_promocion
+        return item_de_promocion(db, item_id)
+    return item_tipo, item_id
+
+
+def requerimientos_pedido(db: Session, items) -> list[tuple[Insumo, Decimal]]:
+    """Suma lo que necesita TODO el pedido por insumo, aunque varios ítems usen el
+    mismo insumo. items = objetos/dicts con item_tipo, item_id y cantidad."""
+    acum: dict[int, tuple[Insumo, Decimal]] = {}
+    for it in items:
+        tipo = it["item_tipo"] if isinstance(it, dict) else it.item_tipo
+        iid = it["item_id"] if isinstance(it, dict) else it.item_id
+        cant = Decimal(str(it["cantidad"] if isinstance(it, dict) else it.cantidad))
+        tipo, iid = _resolver_item(db, tipo, iid)
+        if tipo == "producto":
+            pares = _insumos_de_producto(db, iid)
+        elif tipo == "paquete":
+            pares = _insumos_de_paquete(db, iid)
+        else:
+            continue
+        for insumo, cant_unit in pares:
+            previo = acum.get(insumo.id, (insumo, Decimal("0")))[1]
+            acum[insumo.id] = (insumo, previo + cant_unit * cant)
+    return list(acum.values())
+
+
+def verificar_pedido(db: Session, items) -> list[str]:
+    """Errores de stock del pedido completo. Lista vacía = se puede preparar."""
+    errores = []
+    for insumo, necesario in requerimientos_pedido(db, items):
+        disponible = Decimal(str(insumo.stock_actual))
+        if disponible < necesario:
+            errores.append(
+                f"'{insumo.nombre}': necesitas {float(necesario):.2f} {insumo.unidad} "
+                f"pero solo hay {float(disponible):.2f} {insumo.unidad}"
+            )
+    return errores
+
+
+def descontar_pedido(db: Session, items) -> list[Insumo]:
+    """Descuenta el stock del pedido completo y devuelve los insumos que quedaron bajos."""
+    bajos = []
+    for insumo, necesario in requerimientos_pedido(db, items):
+        insumo.stock_actual = Decimal(str(insumo.stock_actual)) - necesario
+        insumo.comprado = True
+        if stock_es_bajo(insumo):
+            bajos.append(insumo)
+    return bajos
+
+
 def verificar_stock(
     db: Session,
     item_tipo: str,
@@ -71,6 +126,7 @@ def verificar_stock(
     """
     errores: list[str] = []
     cant = Decimal(str(cantidad_items))
+    item_tipo, item_id = _resolver_item(db, item_tipo, item_id)
 
     if item_tipo == "producto":
         pares = _insumos_de_producto(db, item_id)
