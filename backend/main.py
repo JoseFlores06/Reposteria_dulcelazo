@@ -1,11 +1,13 @@
 # Punto de entrada de la API. Levanta la app, registra los modelos contra la BD
 # y monta cada router bajo /api/<recurso>.
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 
 from database import engine
+from services.costeo import PorcentajeGananciaInvalido
 from models.base import Base
 from models import (
     Usuario, Empresa, Insumo, Producto, ProductoInsumo,
@@ -29,9 +31,15 @@ os.makedirs("uploads", exist_ok=True)
 app = FastAPI(
     title="Dulce Lazo - API",
     description="Sistema de gestión para pastelería Dulce Lazo",
-    version="1.0.0",
+    version="2.0.0",
     redirect_slashes=False,
 )
+
+@app.exception_handler(PorcentajeGananciaInvalido)
+async def _ganancia_invalida(_request: Request, exc: PorcentajeGananciaInvalido):
+    # DEF-DL-006: antes este error llegaba al usuario como HTTP 500
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
 
 # CORS
 app.add_middleware(
