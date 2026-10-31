@@ -9,6 +9,9 @@ class UnidadTiempo(str, enum.Enum):
     dias = "dias"
     semanas = "semanas"
 
+    def __str__(self) -> str:  # mismo criterio que UnidadInsumo (DEF-DL-003)
+        return self.value
+
 
 class Producto(Base):
     __tablename__ = "productos"
