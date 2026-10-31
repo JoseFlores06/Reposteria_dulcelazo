@@ -33,7 +33,8 @@ export default function ProductosPage() {
 
   const cargar = () => {
     setLoading(true)
-    Promise.all([getProductos(), getInsumos(true)])
+    // DEF-DL-001: /api/insumos ahora es solo para admin; el vendedor ve el catálogo sin la lista de insumos
+    Promise.all([getProductos(), isAdmin ? getInsumos(true) : Promise.resolve([])])
       .then(([p, i]) => { setProductos(p); setInsumos(i) })
       .catch(() => toast.error('Error al cargar'))
       .finally(() => setLoading(false))

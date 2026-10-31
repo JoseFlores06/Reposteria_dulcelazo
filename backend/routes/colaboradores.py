@@ -6,7 +6,7 @@ from typing import Optional
 from database import get_db
 from models.colaborador import Colaborador
 from models.usuario import Usuario
-from auth import requerir_autenticado, requerir_admin
+from auth import requerir_admin
 
 router = APIRouter()
 
@@ -52,13 +52,13 @@ def colaborador_to_dict(c: Colaborador):
 
 
 @router.get("")
-def listar_colaboradores(db: Session = Depends(get_db), _: Usuario = Depends(requerir_autenticado)):
+def listar_colaboradores(db: Session = Depends(get_db), _: Usuario = Depends(requerir_admin)):  # DEF-DL-001
     colaboradores = db.query(Colaborador).order_by(Colaborador.nombres).all()
     return [colaborador_to_dict(c) for c in colaboradores]
 
 
 @router.get("/{colaborador_id}")
-def obtener_colaborador(colaborador_id: int, db: Session = Depends(get_db), _: Usuario = Depends(requerir_autenticado)):
+def obtener_colaborador(colaborador_id: int, db: Session = Depends(get_db), _: Usuario = Depends(requerir_admin)):  # DEF-DL-001
     c = db.query(Colaborador).filter(Colaborador.id == colaborador_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Colaborador no encontrado")
