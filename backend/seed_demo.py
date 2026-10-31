@@ -221,7 +221,8 @@ def seed_demo():
         print("Creando promociones...")
 
         # PROMOCIONES
-        ahora = datetime.utcnow()
+        from utils.timezone import now_lima
+        ahora = now_lima()  # misma hora (Lima) con la que se evalúa la vigencia
 
         promo_donas = Promocion(
             nombre="Lunes Feliz - Donas 15% off",

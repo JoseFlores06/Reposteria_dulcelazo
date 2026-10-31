@@ -13,6 +13,7 @@ from models.producto import Producto
 from models.paquete import Paquete
 from models.usuario import Usuario
 from auth import requerir_admin, requerir_autenticado
+from services.promocion_service import esta_vigente, item_de_promocion
 
 router = APIRouter()
 UPLOAD_DIR = "uploads"
@@ -31,13 +32,7 @@ def redimensionar_imagen(ruta: str):
 
 def _item_asociado(db: Session, promo_id: int):
     """Encuentra a qué producto o paquete está ligada la promoción."""
-    prod = db.query(Producto).filter(Producto.promocion_id == promo_id).first()
-    if prod:
-        return "producto", prod.id
-    pp = db.query(PromocionPaquete).filter(PromocionPaquete.promocion_id == promo_id).first()
-    if pp:
-        return "paquete", pp.paquete_id
-    return None, None
+    return item_de_promocion(db, promo_id)
 
 
 def promocion_to_dict(db: Session, p: Promocion):
@@ -60,14 +55,7 @@ def promocion_to_dict(db: Session, p: Promocion):
 
 
 def esta_activa_por_fechas(promo: Promocion) -> bool:
-    if promo.fecha_inicio is None and promo.fecha_fin is None:
-        return promo.activo
-    ahora = datetime.utcnow()
-    if promo.fecha_inicio and ahora < promo.fecha_inicio:
-        return False
-    if promo.fecha_fin and ahora > promo.fecha_fin:
-        return False
-    return True
+    return esta_vigente(promo)  # regla única en services/promocion_service.py (DEF-DL-007)
 
 
 @router.get("")
