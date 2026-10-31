@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="16" skipped="2" tests="52" time="57.764" timestamp="2026-10-30T22:02:48.148707-05:00" hostname="vm"><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC001_login_valido_devuelve_token_y_rol" time="1.107" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC002_login_invalido_devuelve_401_generico" time="1.055" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC003_admin_accede_a_finanzas" time="1.023" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC004_vendedor_recibe_403_en_modulos_admin" time="1.055"><failure message="AssertionError: /api/insumos devolvió 200 al vendedor&#10;assert 200 == 403&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+vendedor = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZW5kZWRvckBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1NzJ9.BqZBDu53ivnWTYV42BgU1NvRa8nhqDbJqJ3_hdvI01I'}
+
+    def test_TC004_vendedor_recibe_403_en_modulos_admin(client, vendedor):
+        """TC-004 · CA-004 · T24 — el vendedor no puede leer módulos administrativos."""
+        for ruta in ("/api/finanzas/dashboard", "/api/insumos", "/api/colaboradores", "/api/auth/usuarios"):
+            r = client.get(ruta, headers=vendedor)
+&gt;           assert r.status_code == 403, f"{ruta} devolvió {r.status_code} al vendedor"
+E           AssertionError: /api/insumos devolvió 200 al vendedor
+E           assert 200 == 403
+E            +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests/funcionales/test_casos_funcionales.py:131: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC005_recurso_protegido_sin_token_valido_da_401" time="0.770" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC006_registrar_insumo_calcula_precio_unitario" time="1.051" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC007_insumo_con_stock_inicial_cero_se_registra" time="1.021"><failure message="AssertionError: {&quot;detail&quot;:&quot;La cantidad de compra debe ser mayor a 0&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1NzV9.frWR7JzUip0xyLX04vLAjIvLJ0jslwOmD_eu1UfRdJY'}
+
+    def test_TC007_insumo_con_stock_inicial_cero_se_registra(client, admin):
+        """TC-007 · CA-007 · T03 — un insumo puede registrarse con stock 0 (aún no comprado)."""
+        r = client.post("/api/insumos", headers=admin, json={
+            "nombre": "Colorante rojo", "unidad": "ml", "cantidad_compra": 0, "precio_compra": 0})
+&gt;       assert r.status_code == 200, r.text
+E       AssertionError: {"detail":"La cantidad de compra debe ser mayor a 0"}
+E       assert 400 == 200
+E        +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code
+
+tests/funcionales/test_casos_funcionales.py:167: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC008_venta_bajo_umbral_genera_alerta_y_evento" time="1.337"><failure message="AssertionError: assert ['Huevos (3.0...sumo.unidad)'] == ['Huevos (3.0 unidad)']&#10;  &#10;  At index 0 diff: 'Huevos (3.0 UnidadInsumo.unidad)' != 'Huevos (3.0 unidad)'&#10;  Use -v to get more diff">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1NzZ9.qI04t3R3jHjcFGydhFBe3j9IRVlHVCR1JNHUGix2oX0'}
+vendedor = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZW5kZWRvckBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1NzZ9.69j3f1hWQTS2tmVlTjG0zCLlpUGlpkoLSKbkYHxnnyQ'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb35aa8aa0&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7feb3592ac40&gt;
+
+    def test_TC008_venta_bajo_umbral_genera_alerta_y_evento(client, admin, vendedor, db, monkeypatch):
+        """TC-008 · CA-008 · T39 — la venta que deja Huevos en 3 (&lt; 4) devuelve la alerta
+        legible y pide crear el evento de stock bajo. Google Calendar: doble de prueba
+        (se captura el aviso que el sistema envía; con cuenta real se verifica en la demo)."""
+        import routes.ventas as rv
+        avisos = []
+        monkeypatch.setattr(rv, "crear_evento_stock_bajo", lambda _db, ins: avisos.append(ins) or True)
+    
+        prod = _producto_huevos_x4(client, admin, db)
+        _poner_stock(client, admin, db, "Huevos", 7)
+        r = _vender(client, vendedor, _id_cliente(db, "Maria", "Quispe Huanca"),
+                    [{"item_tipo": "producto", "item_id": prod, "cantidad": 1}])
+        assert r.status_code == 200, r.text
+&gt;       assert r.json()["alertas_stock"] == ["Huevos (3.0 unidad)"]
+E       AssertionError: assert ['Huevos (3.0...sumo.unidad)'] == ['Huevos (3.0 unidad)']
+E         
+E         At index 0 diff: 'Huevos (3.0 UnidadInsumo.unidad)' != 'Huevos (3.0 unidad)'
+E         Use -v to get more diff
+
+tests/funcionales/test_casos_funcionales.py:188: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC009_alerta_sin_calendar_no_interrumpe_la_venta" time="1.321"><failure message="AssertionError: assert ['Huevos (3.0...sumo.unidad)'] == ['Huevos (3.0 unidad)']&#10;  &#10;  At index 0 diff: 'Huevos (3.0 UnidadInsumo.unidad)' != 'Huevos (3.0 unidad)'&#10;  Use -v to get more diff">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1Nzd9.ihh4jY6aftFyHjmpTcug7hVwpxyH_-RD0hrWn2ngnrE'}
+vendedor = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZW5kZWRvckBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1Nzh9.7VopGHfwbG3NKH_P4jn7UFN7uOAwr_7u3s3ogXAhdzU'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb359d27b0&gt;
+capsys = &lt;_pytest.capture.CaptureFixture object at 0x7feb359a3770&gt;
+
+    def test_TC009_alerta_sin_calendar_no_interrumpe_la_venta(client, admin, vendedor, db, capsys):
+        """TC-009 · CA-009 · T44 — sin Google conectado la venta se registra y la alerta se muestra."""
+        prod = _producto_huevos_x4(client, admin, db)
+        _poner_stock(client, admin, db, "Huevos", 7)
+        r = _vender(client, vendedor, _id_cliente(db, "Maria", "Quispe Huanca"),
+                    [{"item_tipo": "producto", "item_id": prod, "cantidad": 1}])
+        assert r.status_code == 200, r.text
+&gt;       assert r.json()["alertas_stock"] == ["Huevos (3.0 unidad)"]
+E       AssertionError: assert ['Huevos (3.0...sumo.unidad)'] == ['Huevos (3.0 unidad)']
+E         
+E         At index 0 diff: 'Huevos (3.0 UnidadInsumo.unidad)' != 'Huevos (3.0 unidad)'
+E         Use -v to get more diff
+
+tests/funcionales/test_casos_funcionales.py:199: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC010_merma_descuenta_stock_sin_cambiar_precio" time="1.037" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC011_merma_mayor_al_stock_se_rechaza" time="1.009"><failure message="AssertionError: assert 'No puedes da...o.mg en stock' == 'No puedes da...0 mg en stock'&#10;  &#10;  - No puedes dar de baja 600.00 mg: solo hay 500.00 mg en stock&#10;  + No puedes dar de baja 600.00 UnidadInsumo.mg: solo hay 500.00 UnidadInsumo.mg en stock&#10;  ?                              +++++++++++++                    +++++++++++++">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1ODB9.Z8sg0Ga4gmwdWhGCm6wqiafiGftoKYGXFPXTxTy0aHY'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb35aabb60&gt;
+
+    def test_TC011_merma_mayor_al_stock_se_rechaza(client, admin, db):
+        """TC-011 · CA-011 · T30 — no se puede dar de baja más de lo que hay; mensaje legible."""
+        mant = _insumo(db, "Mantequilla")
+        r = client.post(f"/api/insumos/{mant.id}/merma", headers=admin,
+                        json={"cantidad": 600, "motivo": "otro", "detalle": "Se dañó por humedad"})
+        assert r.status_code == 400
+&gt;       assert r.json()["detail"] == "No puedes dar de baja 600.00 mg: solo hay 500.00 mg en stock"
+E       AssertionError: assert 'No puedes da...o.mg en stock' == 'No puedes da...0 mg en stock'
+E         
+E         - No puedes dar de baja 600.00 mg: solo hay 500.00 mg en stock
+E         + No puedes dar de baja 600.00 UnidadInsumo.mg: solo hay 500.00 UnidadInsumo.mg en stock
+E         ?                              +++++++++++++                    +++++++++++++
+
+tests/funcionales/test_casos_funcionales.py:225: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC012_costo_y_precio_desde_receta" time="1.044" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC013_ganancia_cero_precio_igual_al_costo" time="1.021"><failure message="assert 9.9 == 9.53 ± 9.5e-06&#10;  &#10;  comparison failed&#10;  Obtained: 9.9&#10;  Expected: 9.53 ± 9.5e-06">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1ODJ9.D8fYYiWosc0UMO2AoRa9T5wahjtxSI4A9vAZxhne8CI'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb35a26c60&gt;
+
+    def test_TC013_ganancia_cero_precio_igual_al_costo(client, admin, db):
+        """TC-013 · CA-013 · T03 — con 0 % de ganancia el precio de venta es el costo."""
+        receta = [{"insumo_id": _insumo(db, n).id, "cantidad_necesaria": c} for n, c in RECETA_TORTA]
+        r = client.post("/api/productos/costear", headers=admin,
+                        json={"porcentaje_ganancia": 0, "insumos": receta})
+        assert r.status_code == 200
+        assert r.json()["precio_costo"] == pytest.approx(9.5325)
+&gt;       assert r.json()["precio_venta"] == pytest.approx(9.53)
+E       assert 9.9 == 9.53 ± 9.5e-06
+E         
+E         comparison failed
+E         Obtained: 9.9
+E         Expected: 9.53 ± 9.5e-06
+
+tests/funcionales/test_casos_funcionales.py:248: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC038_precio_se_redondea_a_precio_peruano" time="1.065" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC039_ganancia_100_se_rechaza_con_400" time="1.040"><failure message="assert 500 == 400&#10; +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1ODR9.GSbZ5tcUikeqw9GjOhE7ubXQg16a_HcGDxkLS_G3s3M'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb35a26a80&gt;
+
+    def test_TC039_ganancia_100_se_rechaza_con_400(client, admin, db):
+        """TC-039 · T04 — 100 % de ganancia es inválido (400, no 500); 99 % se acepta."""
+        receta = [{"insumo_id": _insumo(db, "Huevos").id, "cantidad_necesaria": 4}]
+        r99 = client.post("/api/productos/costear", headers=admin, json={"porcentaje_ganancia": 99, "insumos": receta})
+        r100 = client.post("/api/productos/costear", headers=admin, json={"porcentaje_ganancia": 100, "insumos": receta})
+        assert r99.status_code == 200
+&gt;       assert r100.status_code == 400
+E       assert 500 == 400
+E        +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code
+
+tests/funcionales/test_casos_funcionales.py:266: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC014_paquete_calcula_costo_y_precio" time="1.041" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC015_paquete_un_producto_multiplica_por_cantidad" time="1.010" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC016_promocion_dentro_del_rango_es_activa" time="1.041" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC017_promocion_vencida_es_inactiva" time="1.037" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC040_no_se_vende_promocion_vencida" time="1.314"><failure message="AssertionError: respondió 200: {&quot;mensaje&quot;:&quot;Venta registrada correctamente&quot;,&quot;id&quot;:1,&quot;alertas_stock&quot;:[]}&#10;assert 400 &lt;= 200&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1ODl9.0zskxsITquZyFTNw-OlgTSGO89EfEPjjOk8_JoKv91Y'}
+vendedor = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZW5kZWRvckBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1ODl9.tZOEAxklH6ZwUjSPupJWs4BEKyaR7G-iJlnNUyRGNg8'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb35aa9b80&gt;
+
+    def test_TC040_no_se_vende_promocion_vencida(client, admin, vendedor, db):
+        """TC-040 · T14 — vender por API una promoción vencida debe rechazarse."""
+        pid = _crear_promocion(client, admin, "Promo TC-017", "producto", _producto(db, "Pie de Limon").id, 10,
+                               "2026-09-01T00:00:00", "2026-09-30T23:59:59")
+        antes = db.query(Venta).count()
+        r = _vender(client, vendedor, _id_cliente(db, "Maria", "Quispe Huanca"),
+                    [{"item_tipo": "promocion", "item_id": pid, "cantidad": 1}])
+&gt;       assert 400 &lt;= r.status_code &lt; 500, f"respondió {r.status_code}: {r.text}"
+E       AssertionError: respondió 200: {"mensaje":"Venta registrada correctamente","id":1,"alertas_stock":[]}
+E       assert 400 &lt;= 200
+E        +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests/funcionales/test_casos_funcionales.py:328: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC052_venta_de_promocion_descuenta_stock" time="1.370"><failure message="AssertionError: assert 30.0 == 26&#10; +  where 30.0 = float(Decimal('30.0000'))&#10; +    where Decimal('30.0000') = &lt;models.insumo.Insumo object at 0x7feb35b37cf0&gt;.stock_actual&#10; +      where &lt;models.insumo.Insumo object at 0x7feb35b37cf0&gt; = _insumo(&lt;sqlalchemy.orm.session.Session object at 0x7feb35b1ee40&gt;, 'Huevos')">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1OTF9.545yb_R43TAwAhhJUQFal1eogGPcI8eVk4gNTcmvL60'}
+vendedor = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZW5kZWRvckBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1OTF9.EsLYZ4n2sS5rbsVnmsbevZOJjsfjisbQ2T1TNCoomvs'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb35b1ee40&gt;
+
+    def test_TC052_venta_de_promocion_descuenta_stock(client, admin, vendedor, db):
+        """TC-052 · T16 — vender una promoción vigente de un producto descuenta los insumos
+        de ese producto (caso nuevo, derivado de la ejecución del TC10)."""
+        hoy = datetime.now()
+        pid = _crear_promocion(client, admin, "Promo Torta", "producto", _producto(db, "Torta de Chocolate").id, 10,
+                               (hoy - timedelta(days=1)).isoformat(timespec="seconds"),
+                               (hoy + timedelta(days=1)).isoformat(timespec="seconds"))
+        r = _vender(client, vendedor, _id_cliente(db, "Maria", "Quispe Huanca"),
+                    [{"item_tipo": "promocion", "item_id": pid, "cantidad": 1}])
+        assert r.status_code == 200, r.text
+&gt;       assert float(_insumo(db, "Huevos").stock_actual) == 26
+E       AssertionError: assert 30.0 == 26
+E        +  where 30.0 = float(Decimal('30.0000'))
+E        +    where Decimal('30.0000') = &lt;models.insumo.Insumo object at 0x7feb35b37cf0&gt;.stock_actual
+E        +      where &lt;models.insumo.Insumo object at 0x7feb35b37cf0&gt; = _insumo(&lt;sqlalchemy.orm.session.Session object at 0x7feb35b1ee40&gt;, 'Huevos')
+
+tests/funcionales/test_casos_funcionales.py:344: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC018_venta_descuenta_stock_de_insumos" time="1.096"><failure message="AssertionError: assert ['Cacao en po...adInsumo.mg)'] == ['Cacao en po...a (350.0 mg)']&#10;  &#10;  At index 0 diff: 'Cacao en polvo (400.0 UnidadInsumo.mg)' != 'Cacao en polvo (400.0 mg)'&#10;  Use -v to get more diff">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+vendedor = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZW5kZWRvckBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1OTJ9.7Nb6rEtI9LsSqX_kioWJ-yl9WkWm2IbOIXaRxj3ZmLI'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb35aa9040&gt;
+
+    def test_TC018_venta_descuenta_stock_de_insumos(client, vendedor, db):
+        """TC-018 · CA-018 · T16 — venta E2E de 1 Torta de Chocolate."""
+        r = _vender(client, vendedor, _id_cliente(db, "Maria", "Quispe Huanca"),
+                    [{"item_tipo": "producto", "item_id": _producto(db, "Torta de Chocolate").id, "cantidad": 1}])
+        assert r.status_code == 200, r.text
+        venta = client.get(f"/api/ventas/{r.json()['id']}", headers=vendedor).json()
+        assert venta["total"] == pytest.approx(23.90)
+        assert venta["estado_pago"] == "pendiente" and venta["estado_venta"] == "en_proceso"
+        esperado = {"Harina de trigo": 750, "Azucar blanca": 800, "Mantequilla": 350, "Huevos": 26,
+                    "Leche fresca": 800, "Cacao en polvo": 400, "Levadura seca": 90, "Sal": 995}
+        for nombre, stock in esperado.items():
+            assert float(_insumo(db, nombre).stock_actual) == stock, nombre
+&gt;       assert sorted(r.json()["alertas_stock"]) == sorted(
+            ["Mantequilla (350.0 mg)", "Cacao en polvo (400.0 mg)", "Levadura seca (90.0 mg)"])
+E       AssertionError: assert ['Cacao en po...adInsumo.mg)'] == ['Cacao en po...a (350.0 mg)']
+E         
+E         At index 0 diff: 'Cacao en polvo (400.0 UnidadInsumo.mg)' != 'Cacao en polvo (400.0 mg)'
+E         Use -v to get more diff
+
+tests/funcionales/test_casos_funcionales.py:362: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC019_venta_con_stock_exacto_deja_cero" time="1.421"><failure message="AssertionError: assert ['Huevos (0.0...sumo.unidad)'] == ['Huevos (0.0 unidad)']&#10;  &#10;  At index 0 diff: 'Huevos (0.0 UnidadInsumo.unidad)' != 'Huevos (0.0 unidad)'&#10;  Use -v to get more diff">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1OTN9.Vbya8yRNFYbmW3zNhkTDbDrHFixGo9J3b7a912HnySw'}
+vendedor = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZW5kZWRvckBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1OTN9.HTx-YKkZOU6QK4WYGOnfaeE-XzttBUNqMOZ6QIu8BlA'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb35b825d0&gt;
+
+    def test_TC019_venta_con_stock_exacto_deja_cero(client, admin, vendedor, db):
+        """TC-019 · CA-019 · T03 — stock 8 y la venta pide exactamente 8 huevos."""
+        prod = _producto_huevos_x4(client, admin, db)
+        _poner_stock(client, admin, db, "Huevos", 8)
+        r = _vender(client, vendedor, _id_cliente(db, "Carlos", "Ramos Palomino"),
+                    [{"item_tipo": "producto", "item_id": prod, "cantidad": 2}])
+        assert r.status_code == 200, r.text
+        assert client.get(f"/api/ventas/{r.json()['id']}", headers=vendedor).json()["total"] == pytest.approx(8.00)
+        assert float(_insumo(db, "Huevos").stock_actual) == 0
+&gt;       assert r.json()["alertas_stock"] == ["Huevos (0.0 unidad)"]
+E       AssertionError: assert ['Huevos (0.0...sumo.unidad)'] == ['Huevos (0.0 unidad)']
+E         
+E         At index 0 diff: 'Huevos (0.0 UnidadInsumo.unidad)' != 'Huevos (0.0 unidad)'
+E         Use -v to get more diff
+
+tests/funcionales/test_casos_funcionales.py:375: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC020_venta_con_stock_insuficiente_se_rechaza" time="1.340"><failure message="assert [&quot;'Huevos': n...nsumo.unidad&quot;] == [&quot;'Huevos': n... 5.00 unidad&quot;]&#10;  &#10;  At index 0 diff: &quot;'Huevos': necesitas 8.00 UnidadInsumo.unidad pero solo hay 5.00 UnidadInsumo.unidad&quot; != &quot;'Huevos': necesitas 8.00 unidad pero solo hay 5.00 unidad&quot;&#10;  Use -v to get more diff">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1OTR9.xBKK4AFMB3TKTOw2SwnvffxD8JUh5wGkRNXuZC6WEhA'}
+vendedor = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZW5kZWRvckBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1OTV9.kbOQbbwF8EHgrAJDHyNY6xPZHFotIkNsiW3vZKinDvc'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb35cc24e0&gt;
+
+    def test_TC020_venta_con_stock_insuficiente_se_rechaza(client, admin, vendedor, db):
+        """TC-020 · CA-020 · T30 — hay 5 huevos y se necesitan 8: 422 sin efectos."""
+        prod = _producto_huevos_x4(client, admin, db)
+        _poner_stock(client, admin, db, "Huevos", 5)
+        r = _vender(client, vendedor, _id_cliente(db, "Carlos", "Ramos Palomino"),
+                    [{"item_tipo": "producto", "item_id": prod, "cantidad": 2}])
+        assert r.status_code == 422
+&gt;       assert r.json()["detail"]["errores"] == ["'Huevos': necesitas 8.00 unidad pero solo hay 5.00 unidad"]
+E       assert ["'Huevos': n...nsumo.unidad"] == ["'Huevos': n... 5.00 unidad"]
+E         
+E         At index 0 diff: "'Huevos': necesitas 8.00 UnidadInsumo.unidad pero solo hay 5.00 UnidadInsumo.unidad" != "'Huevos': necesitas 8.00 unidad pero solo hay 5.00 unidad"
+E         Use -v to get more diff
+
+tests/funcionales/test_casos_funcionales.py:385: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC050_verificar_stock_antes_de_agregar_al_carrito" time="1.030"><failure message="AssertionError: {&quot;detail&quot;:[{&quot;type&quot;:&quot;int_parsing&quot;,&quot;loc&quot;:[&quot;path&quot;,&quot;venta_id&quot;],&quot;msg&quot;:&quot;Input should be a valid integer, unable to parse string as an integer&quot;,&quot;input&quot;:&quot;verificar-stock&quot;}]}&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422 Unprocessable Entity]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+vendedor = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZW5kZWRvckBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1OTZ9.YBYlORmOlpNx-I_ZnWs32-Vfgyf2FK5l33uuqxik9Tk'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb35b83020&gt;
+
+    def test_TC050_verificar_stock_antes_de_agregar_al_carrito(client, vendedor, db):
+        """TC-050 · T01 — GET /api/ventas/verificar-stock responde la disponibilidad
+        (caso nuevo, derivado de la ejecución del TC10)."""
+        r = client.get("/api/ventas/verificar-stock", headers=vendedor, params={
+            "item_tipo": "producto", "item_id": _producto(db, "Torta de Chocolate").id, "cantidad": 1})
+&gt;       assert r.status_code == 200, r.text
+E       AssertionError: {"detail":[{"type":"int_parsing","loc":["path","venta_id"],"msg":"Input should be a valid integer, unable to parse string as an integer","input":"verificar-stock"}]}
+E       assert 422 == 200
+E        +  where 422 = &lt;Response [422 Unprocessable Entity]&gt;.status_code
+
+tests/funcionales/test_casos_funcionales.py:396: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC051_venta_con_cantidad_cero_o_negativa_se_rechaza" time="1.024"><failure message="AssertionError: cantidad 0: 200 {&quot;mensaje&quot;:&quot;Venta registrada correctamente&quot;,&quot;id&quot;:1,&quot;alertas_stock&quot;:[&quot;Levadura seca (100.0 UnidadInsumo.mg)&quot;]}&#10;assert 200 == 422&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+vendedor = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZW5kZWRvckBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ1OTd9.LfeNl62sPqnnjbXZ03mtCGswsuIKg2ORTy4VmveF0-E'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb35cc2e40&gt;
+
+    def test_TC051_venta_con_cantidad_cero_o_negativa_se_rechaza(client, vendedor, db):
+        """TC-051 · T04 — cantidad 0 o negativa en un ítem: 422, sin venta y sin tocar el stock
+        (caso nuevo, derivado de la ejecución del TC10)."""
+        torta = _producto(db, "Torta de Chocolate").id
+        cliente = _id_cliente(db, "Maria", "Quispe Huanca")
+        for cantidad in (0, -2):
+            r = _vender(client, vendedor, cliente, [{"item_tipo": "producto", "item_id": torta, "cantidad": cantidad}])
+&gt;           assert r.status_code == 422, f"cantidad {cantidad}: {r.status_code} {r.text}"
+E           AssertionError: cantidad 0: 200 {"mensaje":"Venta registrada correctamente","id":1,"alertas_stock":["Levadura seca (100.0 UnidadInsumo.mg)"]}
+E           assert 200 == 422
+E            +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests/funcionales/test_casos_funcionales.py:407: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC021_boleta_pdf_se_genera_en_menos_de_2s" time="1.117" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC022_boleta_con_20_items_lista_todas_las_lineas" time="1.626" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC023_venta_con_entrega_crea_evento_en_calendar" time="1.061" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC024_venta_sin_google_no_crea_evento" time="1.058" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC025_primera_direccion_principal" time="1.039" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC026_nueva_principal_desmarca_la_anterior" time="1.056" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC027_pago_a_colaborador_aparece_en_historial" time="1.056" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC028_pago_a_colaborador_inexistente_da_404" time="1.050" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC029_reporte_ganancia_solo_ventas_pagadas" time="1.388"><failure message="assert 21.23 == 14.37 ± 1.4e-05&#10;  &#10;  comparison failed&#10;  Obtained: 21.23&#10;  Expected: 14.37 ± 1.4e-05">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ2MDd9.Xj23dv-aUJ8plXrcT2bNteBHPhWqY9r6Z83dgqaicrU'}
+vendedor = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZW5kZWRvckBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ2MDd9.cjNuSD_j17rneMioULrshM3RCnxsuip02NJJ1qMPPPc'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb2f646990&gt;
+
+    def test_TC029_reporte_ganancia_solo_ventas_pagadas(client, admin, vendedor, db):
+        """TC-029 · CA-029 · T11 — la ganancia estimada del mes considera solo ventas pagadas."""
+        cli = _id_cliente(db, "Maria", "Quispe Huanca")
+        a = _vender(client, vendedor, cli, [{"item_tipo": "producto", "item_id": _producto(db, "Torta de Chocolate").id, "cantidad": 1}])
+        _vender(client, vendedor, cli, [{"item_tipo": "producto", "item_id": _producto(db, "Alfajores x6").id, "cantidad": 1}])
+        client.patch(f"/api/ventas/{a.json()['id']}/marcar-pagado", headers=vendedor)
+        hoy = datetime.now()
+        resumen = client.get("/api/finanzas/ventas-detalle", headers=admin,
+                             params={"mes": hoy.month, "anio": hoy.year}).json()["resumen"]
+        assert resumen["ingresos_pagados"] == pytest.approx(23.90)
+&gt;       assert resumen["ganancia_total"] == pytest.approx(14.37)
+E       assert 21.23 == 14.37 ± 1.4e-05
+E         
+E         comparison failed
+E         Obtained: 21.23
+E         Expected: 14.37 ± 1.4e-05
+
+tests/funcionales/test_casos_funcionales.py:564: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC030_reporte_periodo_vacio_devuelve_ceros" time="1.084" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC031_indicadores_de_gasto_de_marketing" time="0.000"><skipped type="pytest.skip" message="BLOQUEADO: REQ-015 (gastos de marketing) no está implementado en el sistema">backend/tests/funcionales/test_casos_funcionales.py:578: BLOQUEADO: REQ-015 (gastos de marketing) no está implementado en el sistema</skipped></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC032_marketing_con_cero_contactos_no_divide_entre_cero" time="0.000"><skipped type="pytest.skip" message="BLOQUEADO: REQ-015 (gastos de marketing) no está implementado en el sistema">backend/tests/funcionales/test_casos_funcionales.py:583: BLOQUEADO: REQ-015 (gastos de marketing) no está implementado en el sistema</skipped></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC033_ia_sugiere_promociones" time="1.052" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC034_ia_sin_clave_devuelve_respaldo" time="1.009" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC035_crear_datos_de_empresa" time="1.052" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC036_actualizar_empresa_no_duplica" time="1.351" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC037_smoke_api_login_modulos_y_venta" time="1.403" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC041_reabastecimiento_calcula_precio_promedio" time="1.030" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC042_reabastecimiento_desde_stock_cero" time="1.117" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC043_reabastecimiento_con_datos_invalidos" time="1.049" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC044_admin_crea_usuario_vendedor" time="1.601" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC045_usuario_con_correo_duplicado_da_400" time="1.039" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC046_login_con_cuenta_desactivada_da_401" time="1.312" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC049_registro_de_usuario_rechaza_datos_invalidos" time="1.309"><failure message="AssertionError: {'nombres': 'Juan3', 'apellidos': 'Pérez', 'correo': 'juan3@dulcelazo.pe', 'password': 'Password123'} → 200&#10;assert 200 == 422&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x7feb362cf620&gt;
+admin = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBkdWxjZWxhem8ucGUiLCJleHAiOjE3OTM0NDQ2MjJ9.QKSxoDa4NW6LqFIfpoJOTUOD0kxdybX_FEwrVpU3wtI'}
+db = &lt;sqlalchemy.orm.session.Session object at 0x7feb2f6f5b80&gt;
+
+    def test_TC049_registro_de_usuario_rechaza_datos_invalidos(client, admin, db):
+        """TC-049 · T02 — el alta de usuario valida formato de nombre, correo y contraseña
+        (caso nuevo, trazado a los 30 fallos de las pruebas unitarias del TC7)."""
+        invalidos = [
+            {"nombres": "Juan3", "apellidos": "Pérez", "correo": "juan3@dulcelazo.pe", "password": "Password123"},
+            {"nombres": "Juan", "apellidos": "Pérez", "correo": "juan.perez.dulcelazo.pe", "password": "Password123"},
+            {"nombres": "Juan", "apellidos": "Pérez", "correo": "juan@dulcelazo.pe", "password": "12345678"},
+            {"nombres": "   ", "apellidos": "Pérez", "correo": "vacio@dulcelazo.pe", "password": "Password123"},
+        ]
+        for datos in invalidos:
+            r = client.post("/api/auth/usuarios", headers=admin, json=datos)
+&gt;           assert r.status_code == 422, f"{datos} → {r.status_code}"
+E           AssertionError: {'nombres': 'Juan3', 'apellidos': 'Pérez', 'correo': 'juan3@dulcelazo.pe', 'password': 'Password123'} → 200
+E           assert 200 == 422
+E            +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests/funcionales/test_casos_funcionales.py:764: AssertionError</failure></testcase><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC047_venta_ciclo_de_estados_valido" time="1.291" /><testcase classname="tests.funcionales.test_casos_funcionales" name="test_TC048_venta_estado_invalido_da_400" time="1.344" /></testsuite></testsuites>

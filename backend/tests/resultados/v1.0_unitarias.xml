@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="30" skipped="0" tests="42" time="2.366" timestamp="2026-10-30T22:04:00.268277-05:00" hostname="vm"><testcase classname="tests.test_usuarios" name="test_datos_validos_se_devuelven_limpios" time="0.001"><failure message="AssertionError: assert '  Juan Carlos ' == 'Juan Carlos'&#10;  &#10;  - Juan Carlos&#10;  +   Juan Carlos &#10;  ? ++           +">def test_datos_validos_se_devuelven_limpios():
+        usuario = crear(nombres="  Juan Carlos ", apellidos=" Pérez Gómez  ", correo="  juan.perez@dulcelazo.pe ")
+&gt;       assert usuario.nombres == "Juan Carlos"
+E       AssertionError: assert '  Juan Carlos ' == 'Juan Carlos'
+E         
+E         - Juan Carlos
+E         +   Juan Carlos 
+E         ? ++           +
+
+tests/test_usuarios.py:32: AssertionError</failure></testcase><testcase classname="tests.test_usuarios" name="test_contrasena_se_guarda_hasheada_y_es_verificable" time="0.567" /><testcase classname="tests.test_usuarios" name="test_contrasena_incorrecta_no_coincide_con_el_hash" time="0.546" /><testcase classname="tests.test_usuarios" name="test_misma_contrasena_genera_hashes_distintos" time="0.526" /><testcase classname="tests.test_usuarios" name="test_rol_por_defecto_es_vendedor" time="0.000" /><testcase classname="tests.test_usuarios" name="test_rol_inexistente_lanza_excepcion" time="0.000" /><testcase classname="tests.test_usuarios" name="test_nombre_vacio_lanza_excepcion" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">def test_nombre_vacio_lanza_excepcion():
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:64: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_nombre_solo_espacios_lanza_excepcion" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">def test_nombre_solo_espacios_lanza_excepcion():
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:69: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_apellido_vacio_lanza_excepcion" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">def test_apellido_vacio_lanza_excepcion():
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:74: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_apellido_solo_espacios_lanza_excepcion" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">def test_apellido_solo_espacios_lanza_excepcion():
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:79: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_longitud_del_nombre_en_sus_valores_limite[1-caracter-invalido]" time="0.001"><failure message="Failed: DID NOT RAISE ValidationError">longitud = 1, es_valida = False
+
+    @pytest.mark.parametrize("longitud, es_valida", [
+        pytest.param(1, False, id="1-caracter-invalido"),      # justo por debajo del minimo
+        pytest.param(2, True, id="2-caracteres-valido"),       # minimo valido (limite incluido)
+        pytest.param(100, True, id="100-caracteres-valido"),   # maximo valido (limite incluido)
+        pytest.param(101, False, id="101-caracteres-invalido"),  # justo por encima del maximo
+    ])
+    def test_longitud_del_nombre_en_sus_valores_limite(longitud, es_valida):
+        if es_valida:
+            crear(nombres="A" * longitud)
+        else:
+&gt;           with pytest.raises(ValidationError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:93: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_longitud_del_nombre_en_sus_valores_limite[2-caracteres-valido]" time="0.000" /><testcase classname="tests.test_usuarios" name="test_longitud_del_nombre_en_sus_valores_limite[100-caracteres-valido]" time="0.000" /><testcase classname="tests.test_usuarios" name="test_longitud_del_nombre_en_sus_valores_limite[101-caracteres-invalido]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">longitud = 101, es_valida = False
+
+    @pytest.mark.parametrize("longitud, es_valida", [
+        pytest.param(1, False, id="1-caracter-invalido"),      # justo por debajo del minimo
+        pytest.param(2, True, id="2-caracteres-valido"),       # minimo valido (limite incluido)
+        pytest.param(100, True, id="100-caracteres-valido"),   # maximo valido (limite incluido)
+        pytest.param(101, False, id="101-caracteres-invalido"),  # justo por encima del maximo
+    ])
+    def test_longitud_del_nombre_en_sus_valores_limite(longitud, es_valida):
+        if es_valida:
+            crear(nombres="A" * longitud)
+        else:
+&gt;           with pytest.raises(ValidationError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:93: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_longitud_del_apellido_en_sus_valores_limite[1-caracter-invalido]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">longitud = 1, es_valida = False
+
+    @pytest.mark.parametrize("longitud, es_valida", [
+        pytest.param(1, False, id="1-caracter-invalido"),
+        pytest.param(2, True, id="2-caracteres-valido"),
+        pytest.param(100, True, id="100-caracteres-valido"),
+        pytest.param(101, False, id="101-caracteres-invalido"),
+    ])
+    def test_longitud_del_apellido_en_sus_valores_limite(longitud, es_valida):
+        if es_valida:
+            crear(apellidos="A" * longitud)
+        else:
+&gt;           with pytest.raises(ValidationError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:107: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_longitud_del_apellido_en_sus_valores_limite[2-caracteres-valido]" time="0.000" /><testcase classname="tests.test_usuarios" name="test_longitud_del_apellido_en_sus_valores_limite[100-caracteres-valido]" time="0.000" /><testcase classname="tests.test_usuarios" name="test_longitud_del_apellido_en_sus_valores_limite[101-caracteres-invalido]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">longitud = 101, es_valida = False
+
+    @pytest.mark.parametrize("longitud, es_valida", [
+        pytest.param(1, False, id="1-caracter-invalido"),
+        pytest.param(2, True, id="2-caracteres-valido"),
+        pytest.param(100, True, id="100-caracteres-valido"),
+        pytest.param(101, False, id="101-caracteres-invalido"),
+    ])
+    def test_longitud_del_apellido_en_sus_valores_limite(longitud, es_valida):
+        if es_valida:
+            crear(apellidos="A" * longitud)
+        else:
+&gt;           with pytest.raises(ValidationError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:107: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_nombre_con_caracteres_no_permitidos_lanza_excepcion[con-numero]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">valor_invalido = 'Juan3'
+
+    @pytest.mark.parametrize("valor_invalido", [
+        pytest.param("Juan3", id="con-numero"),
+        pytest.param("Juan.123", id="punto-y-numeros"),
+        pytest.param("Juan_Perez", id="guion-bajo"),
+        pytest.param("'; DROP TABLE users;--", id="inyeccion-sql"),
+        pytest.param("&lt;script&gt;alert(1)&lt;/script&gt;", id="inyeccion-script"),
+    ])
+    def test_nombre_con_caracteres_no_permitidos_lanza_excepcion(valor_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:119: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_nombre_con_caracteres_no_permitidos_lanza_excepcion[punto-y-numeros]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">valor_invalido = 'Juan.123'
+
+    @pytest.mark.parametrize("valor_invalido", [
+        pytest.param("Juan3", id="con-numero"),
+        pytest.param("Juan.123", id="punto-y-numeros"),
+        pytest.param("Juan_Perez", id="guion-bajo"),
+        pytest.param("'; DROP TABLE users;--", id="inyeccion-sql"),
+        pytest.param("&lt;script&gt;alert(1)&lt;/script&gt;", id="inyeccion-script"),
+    ])
+    def test_nombre_con_caracteres_no_permitidos_lanza_excepcion(valor_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:119: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_nombre_con_caracteres_no_permitidos_lanza_excepcion[guion-bajo]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">valor_invalido = 'Juan_Perez'
+
+    @pytest.mark.parametrize("valor_invalido", [
+        pytest.param("Juan3", id="con-numero"),
+        pytest.param("Juan.123", id="punto-y-numeros"),
+        pytest.param("Juan_Perez", id="guion-bajo"),
+        pytest.param("'; DROP TABLE users;--", id="inyeccion-sql"),
+        pytest.param("&lt;script&gt;alert(1)&lt;/script&gt;", id="inyeccion-script"),
+    ])
+    def test_nombre_con_caracteres_no_permitidos_lanza_excepcion(valor_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:119: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_nombre_con_caracteres_no_permitidos_lanza_excepcion[inyeccion-sql]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">valor_invalido = "'; DROP TABLE users;--"
+
+    @pytest.mark.parametrize("valor_invalido", [
+        pytest.param("Juan3", id="con-numero"),
+        pytest.param("Juan.123", id="punto-y-numeros"),
+        pytest.param("Juan_Perez", id="guion-bajo"),
+        pytest.param("'; DROP TABLE users;--", id="inyeccion-sql"),
+        pytest.param("&lt;script&gt;alert(1)&lt;/script&gt;", id="inyeccion-script"),
+    ])
+    def test_nombre_con_caracteres_no_permitidos_lanza_excepcion(valor_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:119: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_nombre_con_caracteres_no_permitidos_lanza_excepcion[inyeccion-script]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">valor_invalido = '&lt;script&gt;alert(1)&lt;/script&gt;'
+
+    @pytest.mark.parametrize("valor_invalido", [
+        pytest.param("Juan3", id="con-numero"),
+        pytest.param("Juan.123", id="punto-y-numeros"),
+        pytest.param("Juan_Perez", id="guion-bajo"),
+        pytest.param("'; DROP TABLE users;--", id="inyeccion-sql"),
+        pytest.param("&lt;script&gt;alert(1)&lt;/script&gt;", id="inyeccion-script"),
+    ])
+    def test_nombre_con_caracteres_no_permitidos_lanza_excepcion(valor_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:119: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_apellido_con_caracteres_no_permitidos_lanza_excepcion[con-numeros]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">valor_invalido = 'Pérez99'
+
+    @pytest.mark.parametrize("valor_invalido", [
+        pytest.param("Pérez99", id="con-numeros"),
+        pytest.param("Pérez-", id="con-guion"),
+        pytest.param("Pérez@", id="con-arroba"),
+    ])
+    def test_apellido_con_caracteres_no_permitidos_lanza_excepcion(valor_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:129: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_apellido_con_caracteres_no_permitidos_lanza_excepcion[con-guion]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">valor_invalido = 'Pérez-'
+
+    @pytest.mark.parametrize("valor_invalido", [
+        pytest.param("Pérez99", id="con-numeros"),
+        pytest.param("Pérez-", id="con-guion"),
+        pytest.param("Pérez@", id="con-arroba"),
+    ])
+    def test_apellido_con_caracteres_no_permitidos_lanza_excepcion(valor_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:129: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_apellido_con_caracteres_no_permitidos_lanza_excepcion[con-arroba]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">valor_invalido = 'Pérez@'
+
+    @pytest.mark.parametrize("valor_invalido", [
+        pytest.param("Pérez99", id="con-numeros"),
+        pytest.param("Pérez-", id="con-guion"),
+        pytest.param("Pérez@", id="con-arroba"),
+    ])
+    def test_apellido_con_caracteres_no_permitidos_lanza_excepcion(valor_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:129: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_nombre_y_apellido_con_tildes_y_enie_son_validos" time="0.000" /><testcase classname="tests.test_usuarios" name="test_correo_con_formato_invalido_lanza_excepcion[vacio]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">correo_invalido = ''
+
+    @pytest.mark.parametrize("correo_invalido", [
+        pytest.param("", id="vacio"),
+        pytest.param("   ", id="solo-espacios"),
+        pytest.param("juan.perez.dulcelazo.pe", id="sin-arroba"),
+        pytest.param("juan@dulcelazo", id="dominio-sin-punto"),
+        pytest.param("@dulcelazo.pe", id="sin-parte-local"),
+        pytest.param("juan@@dulcelazo.pe", id="doble-arroba"),
+        pytest.param("juan@dulcelazo.", id="termina-en-punto"),
+        pytest.param("juan perez@dulcelazo.pe", id="espacio-interno"),
+    ])
+    def test_correo_con_formato_invalido_lanza_excepcion(correo_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:152: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_correo_con_formato_invalido_lanza_excepcion[solo-espacios]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">correo_invalido = '   '
+
+    @pytest.mark.parametrize("correo_invalido", [
+        pytest.param("", id="vacio"),
+        pytest.param("   ", id="solo-espacios"),
+        pytest.param("juan.perez.dulcelazo.pe", id="sin-arroba"),
+        pytest.param("juan@dulcelazo", id="dominio-sin-punto"),
+        pytest.param("@dulcelazo.pe", id="sin-parte-local"),
+        pytest.param("juan@@dulcelazo.pe", id="doble-arroba"),
+        pytest.param("juan@dulcelazo.", id="termina-en-punto"),
+        pytest.param("juan perez@dulcelazo.pe", id="espacio-interno"),
+    ])
+    def test_correo_con_formato_invalido_lanza_excepcion(correo_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:152: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_correo_con_formato_invalido_lanza_excepcion[sin-arroba]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">correo_invalido = 'juan.perez.dulcelazo.pe'
+
+    @pytest.mark.parametrize("correo_invalido", [
+        pytest.param("", id="vacio"),
+        pytest.param("   ", id="solo-espacios"),
+        pytest.param("juan.perez.dulcelazo.pe", id="sin-arroba"),
+        pytest.param("juan@dulcelazo", id="dominio-sin-punto"),
+        pytest.param("@dulcelazo.pe", id="sin-parte-local"),
+        pytest.param("juan@@dulcelazo.pe", id="doble-arroba"),
+        pytest.param("juan@dulcelazo.", id="termina-en-punto"),
+        pytest.param("juan perez@dulcelazo.pe", id="espacio-interno"),
+    ])
+    def test_correo_con_formato_invalido_lanza_excepcion(correo_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:152: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_correo_con_formato_invalido_lanza_excepcion[dominio-sin-punto]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">correo_invalido = 'juan@dulcelazo'
+
+    @pytest.mark.parametrize("correo_invalido", [
+        pytest.param("", id="vacio"),
+        pytest.param("   ", id="solo-espacios"),
+        pytest.param("juan.perez.dulcelazo.pe", id="sin-arroba"),
+        pytest.param("juan@dulcelazo", id="dominio-sin-punto"),
+        pytest.param("@dulcelazo.pe", id="sin-parte-local"),
+        pytest.param("juan@@dulcelazo.pe", id="doble-arroba"),
+        pytest.param("juan@dulcelazo.", id="termina-en-punto"),
+        pytest.param("juan perez@dulcelazo.pe", id="espacio-interno"),
+    ])
+    def test_correo_con_formato_invalido_lanza_excepcion(correo_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:152: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_correo_con_formato_invalido_lanza_excepcion[sin-parte-local]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">correo_invalido = '@dulcelazo.pe'
+
+    @pytest.mark.parametrize("correo_invalido", [
+        pytest.param("", id="vacio"),
+        pytest.param("   ", id="solo-espacios"),
+        pytest.param("juan.perez.dulcelazo.pe", id="sin-arroba"),
+        pytest.param("juan@dulcelazo", id="dominio-sin-punto"),
+        pytest.param("@dulcelazo.pe", id="sin-parte-local"),
+        pytest.param("juan@@dulcelazo.pe", id="doble-arroba"),
+        pytest.param("juan@dulcelazo.", id="termina-en-punto"),
+        pytest.param("juan perez@dulcelazo.pe", id="espacio-interno"),
+    ])
+    def test_correo_con_formato_invalido_lanza_excepcion(correo_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:152: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_correo_con_formato_invalido_lanza_excepcion[doble-arroba]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">correo_invalido = 'juan@@dulcelazo.pe'
+
+    @pytest.mark.parametrize("correo_invalido", [
+        pytest.param("", id="vacio"),
+        pytest.param("   ", id="solo-espacios"),
+        pytest.param("juan.perez.dulcelazo.pe", id="sin-arroba"),
+        pytest.param("juan@dulcelazo", id="dominio-sin-punto"),
+        pytest.param("@dulcelazo.pe", id="sin-parte-local"),
+        pytest.param("juan@@dulcelazo.pe", id="doble-arroba"),
+        pytest.param("juan@dulcelazo.", id="termina-en-punto"),
+        pytest.param("juan perez@dulcelazo.pe", id="espacio-interno"),
+    ])
+    def test_correo_con_formato_invalido_lanza_excepcion(correo_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:152: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_correo_con_formato_invalido_lanza_excepcion[termina-en-punto]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">correo_invalido = 'juan@dulcelazo.'
+
+    @pytest.mark.parametrize("correo_invalido", [
+        pytest.param("", id="vacio"),
+        pytest.param("   ", id="solo-espacios"),
+        pytest.param("juan.perez.dulcelazo.pe", id="sin-arroba"),
+        pytest.param("juan@dulcelazo", id="dominio-sin-punto"),
+        pytest.param("@dulcelazo.pe", id="sin-parte-local"),
+        pytest.param("juan@@dulcelazo.pe", id="doble-arroba"),
+        pytest.param("juan@dulcelazo.", id="termina-en-punto"),
+        pytest.param("juan perez@dulcelazo.pe", id="espacio-interno"),
+    ])
+    def test_correo_con_formato_invalido_lanza_excepcion(correo_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:152: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_correo_con_formato_invalido_lanza_excepcion[espacio-interno]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">correo_invalido = 'juan perez@dulcelazo.pe'
+
+    @pytest.mark.parametrize("correo_invalido", [
+        pytest.param("", id="vacio"),
+        pytest.param("   ", id="solo-espacios"),
+        pytest.param("juan.perez.dulcelazo.pe", id="sin-arroba"),
+        pytest.param("juan@dulcelazo", id="dominio-sin-punto"),
+        pytest.param("@dulcelazo.pe", id="sin-parte-local"),
+        pytest.param("juan@@dulcelazo.pe", id="doble-arroba"),
+        pytest.param("juan@dulcelazo.", id="termina-en-punto"),
+        pytest.param("juan perez@dulcelazo.pe", id="espacio-interno"),
+    ])
+    def test_correo_con_formato_invalido_lanza_excepcion(correo_invalido):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:152: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_longitud_de_la_contrasena_en_sus_valores_limite[7-caracteres-invalida]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">password = 'abcdef1', es_valida = False
+
+    @pytest.mark.parametrize("password, es_valida", [
+        pytest.param("abcdef1", False, id="7-caracteres-invalida"),         # justo por debajo del minimo
+        pytest.param("abcdefg1", True, id="8-caracteres-valida"),           # minimo valido
+        pytest.param("a1" * 32, True, id="64-caracteres-valida"),           # maximo valido
+        pytest.param("a1" * 32 + "x", False, id="65-caracteres-invalida"),  # justo por encima del maximo
+    ])
+    def test_longitud_de_la_contrasena_en_sus_valores_limite(password, es_valida):
+        if es_valida:
+            crear(password=password)
+        else:
+&gt;           with pytest.raises(ValidationError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:168: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_longitud_de_la_contrasena_en_sus_valores_limite[8-caracteres-valida]" time="0.000" /><testcase classname="tests.test_usuarios" name="test_longitud_de_la_contrasena_en_sus_valores_limite[64-caracteres-valida]" time="0.000" /><testcase classname="tests.test_usuarios" name="test_longitud_de_la_contrasena_en_sus_valores_limite[65-caracteres-invalida]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">password = 'a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1x'
+es_valida = False
+
+    @pytest.mark.parametrize("password, es_valida", [
+        pytest.param("abcdef1", False, id="7-caracteres-invalida"),         # justo por debajo del minimo
+        pytest.param("abcdefg1", True, id="8-caracteres-valida"),           # minimo valido
+        pytest.param("a1" * 32, True, id="64-caracteres-valida"),           # maximo valido
+        pytest.param("a1" * 32 + "x", False, id="65-caracteres-invalida"),  # justo por encima del maximo
+    ])
+    def test_longitud_de_la_contrasena_en_sus_valores_limite(password, es_valida):
+        if es_valida:
+            crear(password=password)
+        else:
+&gt;           with pytest.raises(ValidationError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:168: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_contrasena_sin_letras_y_numeros_lanza_excepcion[vacia]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">password_debil = ''
+
+    @pytest.mark.parametrize("password_debil", [
+        pytest.param("", id="vacia"),
+        pytest.param("12345678", id="solo-numeros"),
+        pytest.param("sololetras", id="solo-letras"),
+    ])
+    def test_contrasena_sin_letras_y_numeros_lanza_excepcion(password_debil):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:178: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_contrasena_sin_letras_y_numeros_lanza_excepcion[solo-numeros]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">password_debil = '12345678'
+
+    @pytest.mark.parametrize("password_debil", [
+        pytest.param("", id="vacia"),
+        pytest.param("12345678", id="solo-numeros"),
+        pytest.param("sololetras", id="solo-letras"),
+    ])
+    def test_contrasena_sin_letras_y_numeros_lanza_excepcion(password_debil):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:178: Failed</failure></testcase><testcase classname="tests.test_usuarios" name="test_contrasena_sin_letras_y_numeros_lanza_excepcion[solo-letras]" time="0.000"><failure message="Failed: DID NOT RAISE ValidationError">password_debil = 'sololetras'
+
+    @pytest.mark.parametrize("password_debil", [
+        pytest.param("", id="vacia"),
+        pytest.param("12345678", id="solo-numeros"),
+        pytest.param("sololetras", id="solo-letras"),
+    ])
+    def test_contrasena_sin_letras_y_numeros_lanza_excepcion(password_debil):
+&gt;       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_usuarios.py:178: Failed</failure></testcase></testsuite></testsuites>
