@@ -108,3 +108,18 @@ frontend/
   src/context/       # Contexto de autenticación
   src/api/           # Llamadas a la API (axios)
 ```
+
+## Pruebas
+
+```bash
+cd backend
+pip install -r requirements-test.txt
+python -m pytest tests/test_usuarios.py -v          # unitarias (TC7)
+python -m pytest tests/funcionales -v               # funcionales TC-001…TC-052 (necesita la BD *_test)
+python -m pytest tests/selenium_usuarios.py         # Selenium (TC8): backend y frontend levantados
+```
+
+Las pruebas funcionales usan una BD aparte (`TEST_DATABASE_URL`, nombre terminado en `_test`)
+que se reinicia y siembra en cada caso. Carga en Kiwi TCMS y reporte: `backend/tests/kiwi/README.md`.
+Defectos y correcciones de la v2.0: `docs/DEFECTOS.md` y `CHANGELOG.md`.
+
