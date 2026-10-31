@@ -100,6 +100,16 @@ def leer_junit(ruta):
     return resultados
 
 
+def fecha_junit(ruta):
+    """Momento real de la ejecución (atributo timestamp que escribe pytest)."""
+    suite = ET.parse(ruta).getroot()
+    suite = suite if suite.tag == "testsuite" else suite.find("testsuite")
+    try:
+        return datetime.fromisoformat(suite.get("timestamp"))
+    except (TypeError, ValueError, AttributeError):
+        return datetime.fromtimestamp(os.path.getmtime(ruta))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--url", default="https://localhost", help="URL de Kiwi (p. ej. https://localhost:8443)")
@@ -199,7 +209,8 @@ def main():
         if not ruta:
             continue
         resultados = leer_junit(ruta)
-        fecha = datetime.fromtimestamp(os.path.getmtime(ruta)).strftime("%d/%m/%Y %H:%M")
+        momento = fecha_junit(ruta)
+        fecha = momento.strftime("%d/%m/%Y %H:%M")
         run, ejec = crear_run(
             f"Ejecución automatizada (pytest) — Build {etiqueta}", builds[etiqueta], list(ids.values()),
             f"Resultados de pytest --junitxml ({Path(ruta).name}, {fecha}). Casos sin prueba automatizada quedan IDLE.")
@@ -226,7 +237,7 @@ def main():
                     k("TestExecution.add_link", {"execution_id": e["id"], "url": url, "name": d["id"],
                                                  "is_defect": True}, False)
             cuenta[estado] = cuenta.get(estado, 0) + 1
-        marca = datetime.fromtimestamp(os.path.getmtime(ruta)).strftime("%Y-%m-%d %H:%M:%S")
+        marca = momento.strftime("%Y-%m-%d %H:%M:%S")
         k("TestRun.update", run["id"], {"start_date": marca, "stop_date": marca})
         ya_adjuntos = {x.get("filename") for x in k("TestRun.list_attachments", run["id"])} \
             if "TestRun.list_attachments" in k("system.listMethods") else set()
