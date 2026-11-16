@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import {
   ShoppingBag, Package, Tag, Users, Building2, Archive,
   Calendar, TrendingUp, LogOut, Menu, X, UserCog, Sun, Moon,
-  ChevronRight, Sparkles
+  ChevronRight, Sparkles, Megaphone
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -17,13 +17,14 @@ const navItems = [
   { to: '/colaboradores', label: 'Colaboradores', icon: UserCog,     soloAdmin: true  },
   { to: '/empresa',       label: 'Empresa',       icon: Building2,   soloAdmin: true  },
   { to: '/calendario',    label: 'Calendario',    icon: Calendar,    soloAdmin: true  },
-  { to: '/finanzas',      label: 'Finanzas',      icon: TrendingUp,  soloAdmin: true  },
-  { to: '/usuarios',      label: 'Usuarios',      icon: UserCog,     soloAdmin: true  },
+  { to: '/finanzas',          label: 'Finanzas',          icon: TrendingUp,  soloAdmin: true  },
+  { to: '/gastos-marketing',  label: 'Mkt Gastos',         icon: Megaphone,   soloAdmin: true  },
+  { to: '/usuarios',          label: 'Usuarios',           icon: UserCog,     soloAdmin: true  },
 ]
 
 const navGroups = [
   { label: 'Principal', items: ['ventas', 'productos', 'paquetes', 'promociones', 'clientes'] },
-  { label: 'Administración', items: ['insumos', 'colaboradores', 'empresa', 'calendario', 'finanzas', 'usuarios'] },
+  { label: 'Administración', items: ['insumos', 'colaboradores', 'empresa', 'calendario', 'finanzas', 'gastos-marketing', 'usuarios'] },
 ]
 
 export default function Layout() {

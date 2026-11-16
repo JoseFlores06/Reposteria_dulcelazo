@@ -13,6 +13,7 @@ import CalendarioPage from './pages/CalendarioPage'
 import VentasPage from './pages/VentasPage'
 import FinanzasPage from './pages/FinanzasPage'
 import UsuariosPage from './pages/UsuariosPage'
+import GastosMarketingPage from './pages/GastosMarketingPage'
 
 function RutaProtegida({ children, soloAdmin = false }) {
   const { usuario, isAdmin } = useAuth()
@@ -40,6 +41,7 @@ function AppRoutes() {
         <Route path="calendario" element={<RutaProtegida soloAdmin><CalendarioPage /></RutaProtegida>} />
         <Route path="finanzas" element={<RutaProtegida soloAdmin><FinanzasPage /></RutaProtegida>} />
         <Route path="usuarios" element={<RutaProtegida soloAdmin><UsuariosPage /></RutaProtegida>} />
+        <Route path="gastos-marketing" element={<RutaProtegida soloAdmin><GastosMarketingPage /></RutaProtegida>} />
       </Route>
       <Route path="*" element={<Navigate to="/ventas" replace />} />
     </Routes>

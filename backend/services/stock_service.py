@@ -90,8 +90,19 @@ def requerimientos_pedido(db: Session, items) -> list[tuple[Insumo, Decimal]]:
     return list(acum.values())
 
 
+def bloquear_insumos_pedido(db: Session, items) -> None:
+    """DEF-DL-012: adquiere SELECT … FOR UPDATE sobre todos los insumos del pedido
+    para evitar sobreventa en ventas concurrentes."""
+    reqs = requerimientos_pedido(db, items)
+    if not reqs:
+        return
+    ids = sorted({insumo.id for insumo, _ in reqs})
+    db.query(Insumo).filter(Insumo.id.in_(ids)).with_for_update().all()
+
+
 def verificar_pedido(db: Session, items) -> list[str]:
     """Errores de stock del pedido completo. Lista vacía = se puede preparar."""
+    bloquear_insumos_pedido(db, items)
     errores = []
     for insumo, necesario in requerimientos_pedido(db, items):
         disponible = Decimal(str(insumo.stock_actual))

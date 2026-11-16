@@ -12,3 +12,4 @@ from .finanzas import PagoColaborador
 from .calendario import Calendario
 from .direccion_cliente import DireccionCliente
 from .merma_insumo import MermaInsumo
+from .gasto_marketing import GastoMarketing

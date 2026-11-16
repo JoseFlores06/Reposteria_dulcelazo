@@ -129,6 +129,9 @@ def verificar_stock_pedido(
     _: Usuario = Depends(requerir_autenticado),
 ):
     """Verifica si hay suficiente stock para un item antes de agregar al carrito."""
+    # DEF-DL-013: rechazar cantidad cero o negativa explícitamente
+    if cantidad <= 0:
+        raise HTTPException(status_code=422, detail="La cantidad debe ser mayor a 0")
     errores = verificar_stock(db, item_tipo, item_id, cantidad)
     return {"disponible": len(errores) == 0, "errores": errores}
 
@@ -145,23 +148,15 @@ def obtener_venta(venta_id: int, db: Session = Depends(get_db), _: Usuario = Dep
     return venta_to_dict(v, incluir_items=True)
 
 
-@router.post("")
-def crear_venta(
-    data: VentaCreate,
-    db: Session = Depends(get_db),
-    usuario: Usuario = Depends(obtener_usuario_actual),
-):
-    cliente = db.query(Cliente).filter(Cliente.id == data.cliente_id).first()
+def _validar_cliente(db: Session, cliente_id: int) -> Cliente:
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return cliente
 
-    # 1. Validar cada ítem (existe, activo, promoción vigente) ANTES de tocar nada
-    precios = [obtener_precio_item(db, it.item_tipo, it.item_id) for it in data.items]
 
-    # 2. Verificar stock del pedido completo (sumando insumos repetidos entre ítems
-    #    e incluyendo los de las promociones — DEF-DL-011)
-    errores_stock = verificar_pedido(db, data.items)
-
+def _validar_stock_del_pedido(db: Session, items) -> None:
+    errores_stock = verificar_pedido(db, items)
     if errores_stock:
         raise HTTPException(
             status_code=422,
@@ -172,10 +167,13 @@ def crear_venta(
             },
         )
 
-    # 3. Crear la venta
+
+def _registrar_venta_e_items(
+    db: Session, data: VentaCreate, colaborador_id: int, precios: list
+) -> tuple["Venta", list]:
     venta = Venta(
         cliente_id=data.cliente_id,
-        colaborador_id=usuario.id,
+        colaborador_id=colaborador_id,
         metodo_pago=data.metodo_pago,
         estado_pago=EstadoPago.pendiente,
         estado_venta=EstadoVenta.en_proceso,
@@ -194,8 +192,7 @@ def crear_venta(
     for item_data, (nombre, precio_unitario) in zip(data.items, precios):
         subtotal_item = precio_unitario * item_data.cantidad
         total += subtotal_item
-
-        item = VentaItem(
+        db.add(VentaItem(
             venta_id=venta.id,
             item_tipo=item_data.item_tipo,
             item_id=item_data.item_id,
@@ -203,34 +200,38 @@ def crear_venta(
             precio_unitario_snapshot=precio_unitario,
             cantidad=item_data.cantidad,
             subtotal=subtotal_item,
-        )
-        db.add(item)
+        ))
 
     venta.subtotal = total
     venta.total = total
-
-    # 4. Descontar stock (una sola vez por insumo, ya agregado por pedido)
-    insumos_bajos_uniq = descontar_pedido(db, data.items)
-
+    insumos_bajos = descontar_pedido(db, data.items)
     db.commit()
     db.refresh(venta)
+    return venta, insumos_bajos
 
-    # 5. Crear eventos en Google Calendar (post-commit)
+
+def _notificar_calendar(db: Session, venta: "Venta", insumos_bajos: list, fecha_entrega) -> list[str]:
     alertas: list[str] = []
-    if insumos_bajos_uniq:
-        names = [f"{i.nombre} ({float(i.stock_actual):.1f} {i.unidad})" for i in insumos_bajos_uniq]
-        alertas = names
-        crear_evento_stock_bajo(db, insumos_bajos_uniq)
+    if insumos_bajos:
+        alertas = [f"{i.nombre} ({float(i.stock_actual):.1f} {i.unidad})" for i in insumos_bajos]
+        crear_evento_stock_bajo(db, insumos_bajos)
+    if fecha_entrega:
+        crear_evento_venta(db, venta, fecha_entrega)
+    return alertas
 
-    if data.fecha_entrega:
-        crear_evento_venta(db, venta, data.fecha_entrega)
 
-    respuesta = {
-        "mensaje": "Venta registrada correctamente",
-        "id": venta.id,
-        "alertas_stock": alertas,
-    }
-    return respuesta
+@router.post("")
+def crear_venta(
+    data: VentaCreate,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(obtener_usuario_actual),
+):
+    _validar_cliente(db, data.cliente_id)
+    precios = [obtener_precio_item(db, it.item_tipo, it.item_id) for it in data.items]
+    _validar_stock_del_pedido(db, data.items)
+    venta, insumos_bajos = _registrar_venta_e_items(db, data, usuario.id, precios)
+    alertas = _notificar_calendar(db, venta, insumos_bajos, data.fecha_entrega)
+    return {"mensaje": "Venta registrada correctamente", "id": venta.id, "alertas_stock": alertas}
 
 
 @router.patch("/{venta_id}/marcar-pagado")
